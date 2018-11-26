@@ -54,5 +54,43 @@ namespace VerQL.CoreTest
             Assert.Equal<string>("MyCol", p.Columns[0].Name);
             Assert.False(p.Columns[0].Asc);
         }
+
+        [Theory]
+        [InlineData("create procedure dbo.myProc @id int as select * from myTable where id = @id")]
+        [InlineData("create procedure myProc @id int as select * from myTable where id = @id")]
+        [InlineData("create procedure [myProc] @id int as select * from myTable where id = @id")]
+        [InlineData("create procedure [dbo].[myProc] @id int as select * from myTable where id = @id")]
+        [InlineData("create procedure dbo.[myProc] @id int as select * from myTable where id = @id")]
+        [InlineData("create procedure [dbo].myProc @id int as select * from myTable where id = @id")]
+        public void TestProcessProcedure(string sql)
+        {
+            var p = new MockDirectoryLoader().TestProcessProcedure(sql);
+            Assert.NotNull(p);
+            Assert.NotNull(p.Name);
+            Assert.Equal<string>("myProc", p.Name);
+            Assert.NotNull(p.Schema);
+            Assert.Equal<string>("dbo", p.Schema);
+            Assert.NotNull(p.Definition);
+            Assert.Equal<string>(sql, p.Definition);
+        }
+
+        [Theory]
+        [InlineData("create function dbo.myFunc (@ItemList nvarchar(max)) select @ItemList")]
+        [InlineData("create function myFunc (@ItemList nvarchar(max)) select @ItemList")]
+        [InlineData("create function [myFunc] (@ItemList nvarchar(max)) select @ItemList")]
+        [InlineData("create function [dbo].[myFunc] (@ItemList nvarchar(max)) select @ItemList")]
+        [InlineData("create function dbo.[myFunc] (@ItemList nvarchar(max)) select @ItemList")]
+        [InlineData("create function [dbo].myFunc (@ItemList nvarchar(max)) select @ItemList")]
+        public void TestProcessFunction(string sql)
+        {
+            var p = new MockDirectoryLoader().TestProcessFunction(sql);
+            Assert.NotNull(p);
+            Assert.NotNull(p.Name);
+            Assert.Equal<string>("myFunc", p.Name);
+            Assert.NotNull(p.Schema);
+            Assert.Equal<string>("dbo", p.Schema);
+            Assert.NotNull(p.Definition);
+            Assert.Equal<string>(sql, p.Definition);
+        }
     }
 }

@@ -16,5 +16,15 @@ namespace VerQL.CoreTest
         {
             return ProcessPrimaryKey(sql);
         }
+
+        public Procedure TestProcessProcedure(string sql)
+        {
+            return ProcessProcedure(sql);
+        }
+
+        public Function TestProcessFunction(string sql)
+        {
+            return ProcessFunction(sql);
+        }
     }
 }

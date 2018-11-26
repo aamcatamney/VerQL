@@ -11,6 +11,7 @@ namespace VerQL.Core.Models
         public bool IsPrimaryKey { get; set; }
         public bool IsUnique { get; set; }
         public bool IsIdentity { get; set; }
+        public bool IsUserDefined { get; set; }
         public int SeedValue { get; set; } = 1;
         public int IncrementValue { get; set; } = 1;
         public bool HasDefault { get; set; }
