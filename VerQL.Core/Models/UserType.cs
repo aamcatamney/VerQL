@@ -1,9 +1,9 @@
 namespace VerQL.Core.Models
 {
-  public class UserType
-  {
-    public string Schema { get; set; } = "dbo";
-    public string Name { get; set; }
-    public string Definition { get; set; }
-  }
+    public class UserType : Base
+    {
+        public string Type { get; set; }
+        public int MaxLength { get; set; }
+        public bool IsNullable { get; set; }
+    }
 }

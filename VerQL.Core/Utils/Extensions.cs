@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using VerQL.Core.Models;
 
 namespace VerQL.Core.Utils
 {
@@ -13,6 +14,11 @@ namespace VerQL.Core.Utils
         public static string RemoveBrackets(this string Text)
         {
             return Text.Replace("(", "").Replace(")", "");
+        }
+
+        public static string GetKey(this Base b)
+        {
+            return $"[{b.Schema}].[{b.Name}]";
         }
 
         public static List<string> TrueSplit(this string text, char separator = ',')

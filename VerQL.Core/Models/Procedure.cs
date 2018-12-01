@@ -1,9 +1,7 @@
-namespace VerQL
+namespace VerQL.Core.Models
 {
-    public class Procedure
+    public class Procedure : Base
     {
-        public string Schema { get; set; } = "dbo";
-        public string Name { get; set; }
         public string Definition { get; set; }
     }
 }

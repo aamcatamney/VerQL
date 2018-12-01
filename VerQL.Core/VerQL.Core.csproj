@@ -4,4 +4,16 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
+   <ItemGroup>
+    <Content Remove="SQL\GetDatabaseSchema.sql" />
+  </ItemGroup>
+
+   <ItemGroup>
+    <EmbeddedResource Include="SQL\GetDatabaseSchema.sql" />
+  </ItemGroup>
+
+   <ItemGroup>
+     <PackageReference Include="Dapper" Version="1.50.5" />
+   </ItemGroup>
+
 </Project>

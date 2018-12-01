@@ -1,8 +1,8 @@
 namespace VerQL.Core.Models
 {
-    public class Schema
+    public abstract class Base
     {
+        public string Schema { get; set; } = "dbo";
         public string Name { get; set; }
-        public string Authorization { get; set; }
     }
 }
