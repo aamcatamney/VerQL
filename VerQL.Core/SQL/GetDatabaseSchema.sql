@@ -6,7 +6,17 @@ and s.name not in ('dbo', 'guest', 'INFORMATION_SCHEMA', 'sys')
 order by s.name
 
 -- 2. UserType
-select s.name as [Schema], t.name as [Name], st.name as [Type], t.max_length as [MaxLength], t.is_nullable as [IsNullable]
+select s.name as [Schema], 
+	   t.name as [Name], 
+	   st.name as [Type], 
+	   case
+	    when t.max_length = -1 then t.max_length
+		when st.name in ('time') then t.scale
+		when st.name in ('float') then t.precision
+		when st.name in ('ntext', 'nchar', 'nvarchar') then t.max_length / 2
+		when st.name in ('text', 'char', 'varchar', 'binary', 'varbinary') then t.max_length
+		else 0 end as [MaxLength],
+	   t.is_nullable as [IsNullable]
 from sys.types t
 join sys.schemas s on s.schema_id = t.schema_id
 join sys.types st on st.user_type_id = t.system_type_id
@@ -24,7 +34,14 @@ order by s.name, t.name
 select s.name as [Schema], 
 	   t.name as [Table], 
 	   c.name as [Name], 
-	   c.max_length as [MaxLength], 
+	   uty.name as [Type], 
+	   case
+	    when c.max_length = -1 then c.max_length
+		when uty.name in ('time') then c.scale
+		when uty.name in ('float') then c.precision
+		when uty.name in ('ntext', 'nchar', 'nvarchar') then c.max_length / 2
+		when uty.name in ('text', 'char', 'varchar', 'binary', 'varbinary') then c.max_length
+		else 0 end as [MaxLength],
 	   c.is_nullable as [IsNullable], 
 	   c.is_computed as [IsComputed],
 	   cc.definition as [ComputedText],
@@ -39,6 +56,7 @@ select s.name as [Schema],
 from sys.columns c
 join sys.tables t on t.object_id = c.object_id
 join sys.schemas s on s.schema_id = t.schema_id
+join sys.types uty on c.user_type_id = uty.user_type_id
 left join sys.computed_columns cc on cc.column_id = c.column_id and cc.object_id = c.object_id
 left join sys.index_columns pic on pic.column_id = c.column_id and pic.object_id = c.object_id
 left join sys.indexes pi on pi.object_id = c.object_id and pi.index_id = pic.index_id and pi.is_primary_key = 1

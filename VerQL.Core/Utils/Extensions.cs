@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using VerQL.Core.Models;
 
 namespace VerQL.Core.Utils
@@ -50,6 +51,11 @@ namespace VerQL.Core.Utils
                 lines.Add(sf);
             }
             return lines;
+        }
+
+        public static bool IsNumericType(this Column col)
+        {
+            return new[] { "bit", "decima", "numeric", "float", "real", "int", "bigint", "smallint", "tinyint", "money", "smallmoney" }.Any(x => x.Equals(col.Type, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

@@ -213,7 +213,8 @@ namespace VerQL.Core.Loaders
         protected Function ProcessFunction(string sql)
         {
             var fun = new Function();
-            fun.Name = sql.Substring(sql.IndexOf("create function", StringComparison.OrdinalIgnoreCase) + 15).Trim().Split(null).FirstOrDefault();
+            var s = new Regex(@"\s\s+").Replace(sql, " ");
+            fun.Name = s.Substring(s.IndexOf("create function", StringComparison.OrdinalIgnoreCase) + 15).Trim().Split(null).FirstOrDefault();
             if (fun.Name.Contains("."))
             {
                 fun.Schema = fun.Name.Split(new[] { "." }, StringSplitOptions.None).FirstOrDefault();

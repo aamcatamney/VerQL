@@ -81,6 +81,7 @@ namespace VerQL.CoreTest
         [InlineData("create function [dbo].[myFunc] (@ItemList nvarchar(max)) select @ItemList")]
         [InlineData("create function dbo.[myFunc] (@ItemList nvarchar(max)) select @ItemList")]
         [InlineData("create function [dbo].myFunc (@ItemList nvarchar(max)) select @ItemList")]
+        [InlineData("create   function [dbo].myFunc (@ItemList nvarchar(max)) select @ItemList")]
         public void TestProcessFunction(string sql)
         {
             var p = new MockDirectoryLoader().TestProcessFunction(sql);
