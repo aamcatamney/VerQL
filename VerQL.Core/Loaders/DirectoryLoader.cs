@@ -51,7 +51,7 @@ namespace VerQL.Core.Loaders
         protected List<string> ParseFile(string path)
         {
             var contents = File.ReadAllText(path);
-            var starts = Regex.Matches(contents, "^(?!--)(EXECUTE|CREATE)(?=([^']*'[^']*')*[^']*$)", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            var starts = Regex.Matches(contents, "^(?!--)(EXECUTE |CREATE )(?=([^']*'[^']*')*[^']*$)", RegexOptions.IgnoreCase | RegexOptions.Multiline);
             var statments = new List<string>();
             for (int i = 0; i < starts.Count; i++)
             {
@@ -265,14 +265,35 @@ namespace VerQL.Core.Loaders
             else if (text.EndsWith(");")) text = text.Substring(0, text.Length - 2);
 
             // cols
-            foreach (var cc in text.TrueSplit())
+            var lines = new List<string>();
+            var split = text.TrueSplit();
+            foreach (var s in split)
+            {
+                var t = s.Trim();
+                if (t.StartsWith(",")) t = t.Substring(1);
+                if (t.EndsWith(",")) t = t.Substring(0, t.Length - 1);
+                t = t.Trim();
+                if (!t.StartsWith("CONSTRAINT", StringComparison.OrdinalIgnoreCase) && t.IndexOf("CONSTRAINT", StringComparison.OrdinalIgnoreCase) > 0)
+                {
+                    var rsplit = Regex.Split(s, "CONSTRAINT", RegexOptions.IgnoreCase).ToList();
+                    lines.Add(rsplit[0]);
+                    rsplit.RemoveAt(0);
+                    lines.AddRange(rsplit.Select(r => $"CONSTRAINT {r}"));
+                }
+                else
+                {
+                    lines.Add(s);
+                }
+            }
+
+            foreach (var cc in lines)
             {
                 var t = cc.Trim();
                 if (t.StartsWith(",")) t = t.Substring(1);
                 if (t.EndsWith(",")) t = t.Substring(0, t.Length - 1);
                 t = t.Trim();
 
-                if (t.StartsWith("CONSTRAINT", StringComparison.OrdinalIgnoreCase))
+                if (t.StartsWith("CONSTRAINT", StringComparison.OrdinalIgnoreCase) || t.StartsWith("UNIQUE", StringComparison.OrdinalIgnoreCase))
                 {
                     if (t.IndexOf("PRIMARY KEY", StringComparison.OrdinalIgnoreCase) > -1)
                     {
@@ -408,7 +429,17 @@ namespace VerQL.Core.Loaders
             t = Regex.Replace(t, "NONCLUSTERED", "", RegexOptions.IgnoreCase);
             t = Regex.Replace(t, "CLUSTERED", "", RegexOptions.IgnoreCase);
 
-            foreach (var c in t.TrueSplit())
+            if (t.IndexOf("WITH", StringComparison.OrdinalIgnoreCase) > -1)
+            {
+                var with = t.Substring(t.IndexOf("WITH", StringComparison.OrdinalIgnoreCase) + 4);
+                var ws = with.Trim().RemoveBrackets().TrueSplit('=').Select(s => s.Trim()).ToList();
+                ws.RemoveAt(0);
+                pk.FillFactor = int.Parse(ws[0]);
+
+                t = t.Substring(0, t.IndexOf("WITH", StringComparison.OrdinalIgnoreCase));
+            }
+
+            foreach (var c in t.RemoveBrackets().TrueSplit())
             {
                 var col = new PrimaryKeyColumn();
                 var colText = c.RemoveBrackets().Trim();
@@ -427,17 +458,30 @@ namespace VerQL.Core.Loaders
             var t = new Regex(@"\s\s+").Replace(text, " ");
             var uc = new UniqueConstraint();
 
-            t = t.Substring(t.IndexOf("CONSTRAINT", StringComparison.OrdinalIgnoreCase) + 10).Trim();
+            if (t.IndexOf("CONSTRAINT", StringComparison.OrdinalIgnoreCase) > -1)
+            {
+                t = t.Substring(t.IndexOf("CONSTRAINT", StringComparison.OrdinalIgnoreCase) + 10).Trim();
+            }
             var split = t.Split(null).ToList();
-            uc.Name = split[0].RemoveSquareBrackets();
-            split.RemoveAt(0);
+
+            // Have name
+            if (!new[] { "NONCLUSTERED", "CLUSTERED", "UNIQUE" }.Any(s => split[0].RemoveSquareBrackets().StartsWith(s, StringComparison.OrdinalIgnoreCase)))
+            {
+                uc.Name = split[0].RemoveSquareBrackets();
+                split.RemoveAt(0);
+            }
+
+            // Remove UNIQUE
+            split.RemoveAll(s => s.Equals("UNIQUE", StringComparison.OrdinalIgnoreCase));
+            split = split.Select(s => s.StartsWith("UNIQUE", StringComparison.OrdinalIgnoreCase) ? s.Substring(6) : s).ToList();
+
             t = string.Join(" ", split).Trim();
 
-            uc.Clustered = t.IndexOf("NONCLUSTERED", StringComparison.OrdinalIgnoreCase) == -1;
             t = Regex.Replace(t, "NONCLUSTERED", "", RegexOptions.IgnoreCase);
+            uc.Clustered = t.IndexOf("CLUSTERED", StringComparison.OrdinalIgnoreCase) > -1;
             t = Regex.Replace(t, "CLUSTERED", "", RegexOptions.IgnoreCase);
 
-            foreach (var c in t.TrueSplit())
+            foreach (var c in t.RemoveBrackets().TrueSplit())
             {
                 var col = new UniqueColumn();
                 var colText = c.RemoveBrackets().Trim();
