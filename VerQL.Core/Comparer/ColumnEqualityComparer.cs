@@ -23,6 +23,7 @@ namespace VerQL.Core.Comparer
                     x.SeedValue.Equals(y.SeedValue) &&
                     x.IncrementValue.Equals(y.IncrementValue) &&
                     x.HasDefault.Equals(y.HasDefault) &&
+                    (x.DefaultName ?? "").Equals(y.DefaultName ?? "", StringComparison.OrdinalIgnoreCase) &&
                     DefaultTextEqual(x, y);
         }
 
@@ -55,7 +56,7 @@ namespace VerQL.Core.Comparer
 
         public int GetHashCode(Column obj)
         {
-            return $"{obj.Name}|{obj.Type}|{obj.MaxLength}|{obj.IsNullable}|{obj.IsComputed}|{obj.ComputedText}|{obj.IsPrimaryKey}|{obj.IsUnique}|{obj.IsIdentity}|{obj.IsUserDefined}|{obj.SeedValue}|{obj.IncrementValue}|{obj.HasDefault}|{obj.DefaultText}".GetHashCode();
+            return $"{obj.Name}|{obj.Type}|{obj.MaxLength}|{obj.IsNullable}|{obj.IsComputed}|{obj.ComputedText}|{obj.IsPrimaryKey}|{obj.IsUnique}|{obj.IsIdentity}|{obj.IsUserDefined}|{obj.SeedValue}|{obj.IncrementValue}|{obj.HasDefault}|{obj.DefaultText}|{obj.DefaultText}".GetHashCode();
         }
     }
 }

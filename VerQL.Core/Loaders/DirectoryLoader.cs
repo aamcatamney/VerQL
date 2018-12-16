@@ -11,6 +11,7 @@ namespace VerQL.Core.Loaders
     public class DirectoryLoader : ILoader
     {
         private const string ReplaceString = @"\s\s+(?=([^']*'[^']*')*[^']*$)";
+        private const string DefaultConstraint = @"(constraint).+(\[?\w\]?).+(?=default)";
         private string _path;
         public DirectoryLoader(string Path)
         {
@@ -230,7 +231,7 @@ namespace VerQL.Core.Loaders
                 if (t.StartsWith(",")) t = t.Substring(1);
                 if (t.EndsWith(",")) t = t.Substring(0, t.Length - 1);
                 t = t.Trim();
-                if (!t.StartsWith("CONSTRAINT", StringComparison.OrdinalIgnoreCase) && t.IndexOf("CONSTRAINT", StringComparison.OrdinalIgnoreCase) > 0)
+                if (!t.StartsWith("CONSTRAINT", StringComparison.OrdinalIgnoreCase) && t.IndexOf("CONSTRAINT", StringComparison.OrdinalIgnoreCase) > 0 && !Regex.IsMatch(t, DefaultConstraint, RegexOptions.IgnoreCase))
                 {
                     var rsplit = Regex.Split(s, "CONSTRAINT", RegexOptions.IgnoreCase).ToList();
                     lines.Add(rsplit[0]);
@@ -532,6 +533,11 @@ namespace VerQL.Core.Loaders
             // Default
             if (t.ToUpper().Contains("DEFAULT"))
             {
+                var dcn = Regex.Match(t, DefaultConstraint, RegexOptions.IgnoreCase);
+                if (dcn.Success)
+                {
+                    col.DefaultName = t.Substring(dcn.Index + 11, dcn.Length - 11).Trim().RemoveSquareBrackets();
+                }
                 var di = t.IndexOf("DEFAULT", StringComparison.OrdinalIgnoreCase) + 8;
                 col.DefaultText = t.Substring(di).Trim();
                 col.HasDefault = true;

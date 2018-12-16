@@ -52,6 +52,10 @@ namespace VerQL.Core.Scripters
 
             if (column.HasDefault)
             {
+                if (!string.IsNullOrEmpty(column.DefaultName))
+                {
+                    sb.Append($"CONSTRAINT [{column.DefaultName}] ");
+                }
                 sb.Append($"DEFAULT {column.DefaultText}");
             }
 

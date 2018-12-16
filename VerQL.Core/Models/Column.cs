@@ -16,5 +16,6 @@ namespace VerQL.Core.Models
         public int IncrementValue { get; set; } = 1;
         public bool HasDefault { get; set; }
         public string DefaultText { get; set; }
+        public string DefaultName { get; set; }
     }
 }
