@@ -65,12 +65,27 @@ namespace VerQL.Core.Loaders
                     MapUniqueKeyColumns(uqs, multi.Read<DBUniqueColumn>());
                     MapTableUniqueKeys(db.Tables, uqs);
                     db.Procedures = multi.Read<Procedure>().ToList();
+                    TrimDefinitions(db.Procedures);
                     db.Views = multi.Read<View>().ToList();
+                    TrimDefinitions(db.Views);
                     db.Functions = multi.Read<Function>().ToList();
+                    TrimDefinitions(db.Functions);
                     db.Triggers = multi.Read<Trigger>().ToList();
+                    TrimDefinitions(db.Triggers);
                 }
             }
             return db;
+        }
+
+        private void TrimDefinitions(IEnumerable<DefinitionBased> definitions)
+        {
+            if (definitions != null)
+            {
+                foreach (var d in definitions)
+                {
+                    d.Definition = d.Definition.Trim();
+                }
+            }
         }
 
         private void MapTableColumns(IEnumerable<Table> tables, IEnumerable<DBColumn> cols)

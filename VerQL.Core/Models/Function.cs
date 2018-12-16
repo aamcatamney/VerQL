@@ -1,7 +1,6 @@
 namespace VerQL.Core.Models
 {
-    public class Function : Base
+    public class Function : DefinitionBased
     {
-        public string Definition { get; set; }
     }
 }

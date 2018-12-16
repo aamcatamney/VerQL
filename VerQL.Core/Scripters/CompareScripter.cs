@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using VerQL.Core.Comparer;
 
@@ -22,39 +23,50 @@ namespace VerQL.Core.Scripters
 
         public List<string> ScriptCompareAsStatments(CompareResponse compareResponse)
         {
-            var statments = new List<string>();
+            var stage1 = new List<string>();
+            var stage2 = new List<string>();
+            var stage3 = new List<string>();
 
             foreach (var s in compareResponse.Schemas.Missing)
             {
-                statments.Add(new SchemaScripter().ScriptCreate(s));
+                stage1.Add(new SchemaScripter().ScriptCreate(s));
             }
 
             foreach (var ut in compareResponse.UserTypes.Missing)
             {
-                statments.Add(new UserTypeScripter().ScriptCreate(ut));
+                stage1.Add(new UserTypeScripter().ScriptCreate(ut));
             }
 
             foreach (var tbl in compareResponse.Tables.Missing)
             {
-                statments.Add(new TableScripter().ScriptCreate(tbl));
+                stage1.Add(new TableScripter().ScriptCreate(tbl));
+                foreach (var fk in tbl.ForeignKeys)
+                {
+                    stage2.Add(new ForeignKeyScripter().ScriptForeignKeyCreate(tbl, fk));
+                }
+            }
+
+            foreach (var t in compareResponse.Triggers.Missing)
+            {
+                stage2.Add(new DefinitionBasedScripter().ScriptCreate(t));
             }
 
             foreach (var v in compareResponse.Views.Missing)
             {
-                statments.Add(new ViewScripter().ScriptCreate(v));
+                stage3.Add(new DefinitionBasedScripter().ScriptCreate(v));
             }
 
             foreach (var f in compareResponse.Functions.Missing)
             {
-                statments.Add(new FunctionScripter().ScriptCreate(f));
+                stage3.Add(new DefinitionBasedScripter().ScriptCreate(f));
             }
 
             foreach (var sp in compareResponse.Procedures.Missing)
             {
-                statments.Add(new ProcedureScripter().ScriptCreate(sp));
+                stage3.Add(new DefinitionBasedScripter().ScriptCreate(sp));
             }
 
-            return statments;
+            return (new[] { stage1, stage2, stage3 }).SelectMany(s => s).ToList();
         }
     }
 }

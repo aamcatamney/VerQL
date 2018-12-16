@@ -85,7 +85,7 @@ namespace VerQL.Core.Loaders
                 }
                 else if (spaceRemoved.Trim().StartsWith("create procedure", StringComparison.OrdinalIgnoreCase))
                 {
-                    var p = ProcessProcedure(s);
+                    var p = ProcessDefinitionBased<Procedure>(new Procedure(), "procedure", s);
                     if (p != null)
                     {
                         db.Procedures.Add(p);
@@ -93,7 +93,7 @@ namespace VerQL.Core.Loaders
                 }
                 else if (spaceRemoved.Trim().StartsWith("create function", StringComparison.OrdinalIgnoreCase))
                 {
-                    var f = ProcessFunction(s);
+                    var f = ProcessDefinitionBased<Function>(new Function(), "function", s);
                     if (f != null)
                     {
                         db.Functions.Add(f);
@@ -101,7 +101,7 @@ namespace VerQL.Core.Loaders
                 }
                 else if (spaceRemoved.Trim().StartsWith("create view", StringComparison.OrdinalIgnoreCase))
                 {
-                    var v = ProcessView(s);
+                    var v = ProcessDefinitionBased<View>(new View(), "view", s);
                     if (v != null)
                     {
                         db.Views.Add(v);
@@ -109,7 +109,7 @@ namespace VerQL.Core.Loaders
                 }
                 else if (spaceRemoved.Trim().StartsWith("create trigger", StringComparison.OrdinalIgnoreCase))
                 {
-                    var t = ProcessTrigger(s);
+                    var t = ProcessDefinitionBased<Trigger>(new Trigger(), "trigger", s);
                     if (t != null)
                     {
                         db.Triggers.Add(t);
@@ -138,7 +138,7 @@ namespace VerQL.Core.Loaders
         protected Schema ProcessSchema(string sql)
         {
             var t = sql;
-            t = t.Substring(t.IndexOf("create schema", StringComparison.OrdinalIgnoreCase) + 13).Trim();
+            t = t.Substring(t.IndexOf("schema", StringComparison.OrdinalIgnoreCase) + 6).Trim();
             var split = t.Split(null).ToList();
             var s = new Schema();
             s.Name = split[0];
@@ -158,7 +158,7 @@ namespace VerQL.Core.Loaders
         {
             var ut = new UserType();
             var t = sql;
-            t = t.Substring(t.IndexOf("create type", StringComparison.OrdinalIgnoreCase) + 11).Trim();
+            t = t.Substring(t.IndexOf("type", StringComparison.OrdinalIgnoreCase) + 4).Trim();
             var split = t.Split(null).Where(s => !string.IsNullOrEmpty(s)).ToList();
             ut.Name = split[0];
             split.RemoveAt(0);
@@ -180,65 +180,22 @@ namespace VerQL.Core.Loaders
             return ut;
         }
 
-        protected Trigger ProcessTrigger(string sql)
+        protected T ProcessDefinitionBased<T>(T def, string type, string sql) where T : DefinitionBased
         {
-            var tri = new Trigger();
-            tri.Name = sql.Substring(sql.IndexOf("create trigger", StringComparison.OrdinalIgnoreCase) + 14).Trim().Split(null).FirstOrDefault();
-            if (tri.Name.Contains("."))
+            def.Name = sql.Substring(sql.IndexOf(type, StringComparison.OrdinalIgnoreCase) + type.Length + 1).Trim().Split(null).FirstOrDefault();
+            if (def.Name.Contains("."))
             {
-                tri.Schema = tri.Name.Split(new[] { "." }, StringSplitOptions.None).FirstOrDefault();
-                tri.Name = tri.Name.Split(new[] { "." }, StringSplitOptions.None).LastOrDefault();
+                def.Schema = def.Name.Split(new[] { "." }, StringSplitOptions.None).FirstOrDefault();
+                def.Name = def.Name.Split(new[] { "." }, StringSplitOptions.None).LastOrDefault();
             }
-            tri.Name = tri.Name.RemoveSquareBrackets();
-            tri.Schema = tri.Schema.RemoveSquareBrackets();
-            tri.Definition = sql;
-            return tri;
-        }
-
-        protected Procedure ProcessProcedure(string sql)
-        {
-            var proc = new Procedure();
-            proc.Name = sql.Substring(sql.IndexOf("create procedure", StringComparison.OrdinalIgnoreCase) + 16).Trim().Split(null).FirstOrDefault();
-            if (proc.Name.Contains("."))
+            def.Name = def.Name.RemoveSquareBrackets();
+            def.Schema = def.Schema.RemoveSquareBrackets();
+            def.Definition = sql.Trim();
+            if (def.Definition.EndsWith("GO", StringComparison.OrdinalIgnoreCase))
             {
-                proc.Schema = proc.Name.Split(new[] { "." }, StringSplitOptions.None).FirstOrDefault();
-                proc.Name = proc.Name.Split(new[] { "." }, StringSplitOptions.None).LastOrDefault();
+                def.Definition = def.Definition.Substring(0, def.Definition.Length - 2).Trim();
             }
-            proc.Name = proc.Name.RemoveSquareBrackets();
-            proc.Schema = proc.Schema.RemoveSquareBrackets();
-            proc.Definition = sql;
-            return proc;
-        }
-
-        protected Function ProcessFunction(string sql)
-        {
-            var fun = new Function();
-            var s = new Regex(@"\s\s+").Replace(sql, " ");
-            fun.Name = s.Substring(s.IndexOf("create function", StringComparison.OrdinalIgnoreCase) + 15).Trim().Split(null).FirstOrDefault();
-            if (fun.Name.Contains("."))
-            {
-                fun.Schema = fun.Name.Split(new[] { "." }, StringSplitOptions.None).FirstOrDefault();
-                fun.Name = fun.Name.Split(new[] { "." }, StringSplitOptions.None).LastOrDefault();
-            }
-            fun.Name = fun.Name.RemoveSquareBrackets();
-            fun.Schema = fun.Schema.RemoveSquareBrackets();
-            fun.Definition = sql;
-            return fun;
-        }
-
-        protected View ProcessView(string sql)
-        {
-            var view = new View();
-            view.Name = sql.Substring(sql.IndexOf("create view", StringComparison.OrdinalIgnoreCase) + 11).Trim().Split(null).FirstOrDefault();
-            if (view.Name.Contains("."))
-            {
-                view.Schema = view.Name.Split(new[] { "." }, StringSplitOptions.None).FirstOrDefault();
-                view.Name = view.Name.Split(new[] { "." }, StringSplitOptions.None).LastOrDefault();
-            }
-            view.Name = view.Name.RemoveSquareBrackets();
-            view.Schema = view.Schema.RemoveSquareBrackets();
-            view.Definition = sql;
-            return view;
+            return def;
         }
 
         protected Table ProcessTable(string sql)
@@ -250,7 +207,7 @@ namespace VerQL.Core.Loaders
             }
             var tbl = new Table();
             // Name & Schema
-            tbl.Name = sql.Substring(sql.IndexOf("create table", StringComparison.OrdinalIgnoreCase) + 12);
+            tbl.Name = sql.Substring(sql.IndexOf("table", StringComparison.OrdinalIgnoreCase) + 5);
             tbl.Name = tbl.Name.Substring(0, tbl.Name.IndexOf("(")).Trim();
             if (tbl.Name.Contains("."))
             {
@@ -400,6 +357,7 @@ namespace VerQL.Core.Loaders
             fk.ReferenceSchema = fk.ReferenceSchema.RemoveSquareBrackets();
 
             t = t.Substring(t.IndexOf("("));
+            if (t.Contains(")")) t = t.Substring(0, t.LastIndexOf(")"));
 
             foreach (var c in t.RemoveBrackets().TrueSplit())
             {

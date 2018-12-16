@@ -187,7 +187,7 @@ select s.name as [Schema],
 from sys.all_objects o
 join sys.schemas s on s.schema_id = o.schema_id
 join sys.sql_modules m on m.object_id = o.object_id
-where o.type = 'TF'
+where o.type in ('TF', 'FN', 'IF')
 and o.is_ms_shipped = 0
 order by s.name, o.name
 

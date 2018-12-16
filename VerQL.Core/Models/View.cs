@@ -1,7 +1,6 @@
 namespace VerQL.Core.Models
 {
-    public class View : Base
+    public class View : DefinitionBased
     {
-        public string Definition { get; set; }
     }
 }

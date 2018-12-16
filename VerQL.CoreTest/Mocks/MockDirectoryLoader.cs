@@ -19,12 +19,12 @@ namespace VerQL.CoreTest
 
         public Procedure TestProcessProcedure(string sql)
         {
-            return ProcessProcedure(sql);
+            return ProcessDefinitionBased<Procedure>(new Procedure(), "procedure", sql);
         }
 
         public Function TestProcessFunction(string sql)
         {
-            return ProcessFunction(sql);
+            return ProcessDefinitionBased<Function>(new Function(), "function", sql);
         }
     }
 }

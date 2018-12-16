@@ -1,7 +1,6 @@
 namespace VerQL.Core.Models
 {
-    public class Trigger : Base
+    public class Trigger : DefinitionBased
     {
-        public string Definition { get; set; }
     }
 }

@@ -1,7 +1,6 @@
 namespace VerQL.Core.Models
 {
-    public class Procedure : Base
+    public class Procedure : DefinitionBased
     {
-        public string Definition { get; set; }
     }
 }

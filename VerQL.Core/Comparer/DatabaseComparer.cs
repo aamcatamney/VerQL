@@ -67,7 +67,7 @@ namespace VerQL.Core.Comparer
             foreach (Procedure l in left.Intersect(right, BEC))
             {
                 var r = right.First(x => x.GetKey().Equals(l.GetKey()));
-                if (l.Definition.Equals(r.Definition)) resp.Same.Add(l);
+                if (l.Definition.Equals(r.Definition, StringComparison.OrdinalIgnoreCase)) resp.Same.Add(l);
                 else resp.Different.Add(l);
             }
             resp.Missing = right.Except(left, BEC).Select(p => (Procedure)p).ToList();
@@ -81,7 +81,7 @@ namespace VerQL.Core.Comparer
             foreach (View l in left.Intersect(right, BEC))
             {
                 var r = right.First(x => x.GetKey().Equals(l.GetKey()));
-                if (l.Definition.Equals(r.Definition)) resp.Same.Add(l);
+                if (l.Definition.Equals(r.Definition, StringComparison.OrdinalIgnoreCase)) resp.Same.Add(l);
                 else resp.Different.Add(l);
             }
             resp.Missing = right.Except(left, BEC).Select(p => (View)p).ToList();
