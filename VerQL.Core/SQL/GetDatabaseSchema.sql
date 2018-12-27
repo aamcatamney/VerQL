@@ -35,7 +35,7 @@ select s.name as [TableSchema],
 	t.name as [TableName],
 	c.name as [Name],
 	c.column_id as [Sequence],
-	uty.name as [Type],
+	case when c.user_type_id <> c.system_type_id then utys.name + '.' + uty.name else uty.name end as [Type],
 	case
 	    when c.max_length = -1 then c.max_length
 		when uty.name in ('time') then c.scale
@@ -57,6 +57,7 @@ from sys.columns c
 	join sys.tables t on t.object_id = c.object_id
 	join sys.schemas s on s.schema_id = t.schema_id
 	join sys.types uty on c.user_type_id = uty.user_type_id
+	join sys.schemas utys on utys.schema_id = uty.schema_id
 	left join sys.computed_columns cc on cc.column_id = c.column_id and cc.object_id = c.object_id
 	left join sys.identity_columns ic on ic.object_id = c.object_id and ic.column_id = c.column_id
 	left join sys.default_constraints dc on dc.parent_object_id = c.object_id and dc.parent_column_id = c.column_id

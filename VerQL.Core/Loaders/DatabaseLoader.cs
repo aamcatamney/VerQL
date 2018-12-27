@@ -142,7 +142,7 @@ namespace VerQL.Core.Loaders
     {
       foreach (var uq in uqs)
       {
-        uq.Columns = cols.Where(c => c.Schema == uq.TableSchema && c.Table == uq.TableName && uq.Name == c.UQ).Select(c => (UniqueColumn)c).ToList();
+        uq.Columns = cols.Where(c => c.TableSchema == uq.TableSchema && c.TableName == uq.TableName && uq.Name == c.UQ).Select(c => (UniqueColumn)c).ToList();
       }
     }
 
@@ -174,8 +174,8 @@ namespace VerQL.Core.Loaders
 
     protected class DBUniqueColumn : UniqueColumn
     {
-      public string Schema { get; set; }
-      public string Table { get; set; }
+      public string TableSchema { get; set; }
+      public string TableName { get; set; }
       public string UQ { get; set; }
       public bool SystemNamed { get; set; }
     }

@@ -12,8 +12,8 @@ namespace VerQL.Cli
   {
     static void Main(string[] args)
     {
-      var DirLoader = new DirectoryLoader(@"C:\Users\AnthonyMcAtamney\source\repos\vf\master\Databases\VisInstruct");
-      var DbLoader = new DatabaseLoader("server=.;uid=visualfactory;pwd=nomuda;database=VF_master_VisInstruct;");
+      var DirLoader = new DirectoryLoader(@"C:\Projects\visualfactory\Databases\VisInstruct");
+      var DbLoader = new DatabaseLoader("server=.;uid=vf;pwd=nomuda;database=TestIns;");
       var dbresp = DbLoader.Load();
       var dirresp = DirLoader.Load();
       var com = new DatabaseComparer();

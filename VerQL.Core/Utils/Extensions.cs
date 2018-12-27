@@ -97,11 +97,24 @@ namespace VerQL.Core.Utils
       return tableBases.Where(c => table.Schema.Equals(c.TableSchema, StringComparison.OrdinalIgnoreCase) && table.Name.Equals(c.TableName, StringComparison.OrdinalIgnoreCase));
     }
 
+    public static IEnumerable<Tuple<T, T>> FilterByTable<T>(this IEnumerable<Tuple<T, T>> tableBases, Table table) where T : TableBase
+    {
+      return tableBases.Where(c => table.Schema.Equals(c.Item1.TableSchema, StringComparison.OrdinalIgnoreCase) && table.Name.Equals(c.Item1.TableName, StringComparison.OrdinalIgnoreCase));
+    }
+
     public static void RemoveDefault(this Column column)
     {
-      if (string.IsNullOrEmpty(column.Type))
+      if (!string.IsNullOrEmpty(column.Type))
       {
         if (column.Type.Equals("float", StringComparison.OrdinalIgnoreCase) && column.MaxLength == 53)
+        {
+          column.MaxLength = 0;
+        }
+        else if (column.Type.Equals("ntext", StringComparison.OrdinalIgnoreCase) && column.MaxLength == 8)
+        {
+          column.MaxLength = 0;
+        }
+        else if (column.Type.Equals("text", StringComparison.OrdinalIgnoreCase) && column.MaxLength == 16)
         {
           column.MaxLength = 0;
         }

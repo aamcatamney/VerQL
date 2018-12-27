@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -40,12 +41,15 @@ namespace VerQL.Core.Scripters
       return sb.ToString();
     }
 
-    public string ScriptAlter(Table table, List<Column> columns)
+    public string ScriptAlter(Table table, List<Tuple<Column, Column>> columns)
     {
       var sb = new StringBuilder();
       foreach (var c in columns)
       {
-        sb.AppendLine($"ALTER TABLE [{table.Schema}].[{table.Name}] ALTER COLUMN {new ColumnScripter().ScriptCreate(c)};");
+        foreach (var line in new ColumnScripter().ScriptAlter(table, c.Item1, c.Item2))
+        {
+          sb.AppendLine(line);
+        }
       }
       return sb.ToString();
     }

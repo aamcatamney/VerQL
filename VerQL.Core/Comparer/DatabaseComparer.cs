@@ -44,7 +44,7 @@ namespace VerQL.Core.Comparer
       {
         var r = right.First(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
         if (CEC.Equals(l, r)) resp.Same.Add(l);
-        else resp.Different.Add(l);
+        else resp.Different.Add(new Tuple<Column, Column>(l, r));
       }
       resp.Additional = GetTableMissing(right, left).ToList();
       resp.Missing = GetTableMissing(left, right).ToList();
@@ -61,7 +61,7 @@ namespace VerQL.Core.Comparer
         var l = left.First(x => x.Name.Equals(ln));
         var r = right.First(x => x.Name.Equals(l.Name));
         if (l.Authorization.Equals(r.Authorization)) resp.Same.Add(l);
-        else resp.Different.Add(l);
+        else resp.Different.Add(new Tuple<Schema, Schema>(l, r));
       }
       resp.Missing = rightNames.Except(leftNames).Select(p => right.First(r => r.Name.Equals(p))).ToList();
       resp.Additional = leftNames.Except(rightNames).Select(p => left.First(r => r.Name.Equals(p))).ToList();
@@ -75,7 +75,7 @@ namespace VerQL.Core.Comparer
       {
         var r = right.First(x => x.GetKey().Equals(l.GetKey()));
         if (l.IsNullable == r.IsNullable && l.MaxLength == r.MaxLength && l.Type.Equals(r.Type, StringComparison.OrdinalIgnoreCase)) resp.Same.Add(l);
-        else resp.Different.Add(l);
+        else resp.Different.Add(new Tuple<UserType, UserType>(l, r));
       }
       resp.Missing = GetBaseMissing(left, right).ToList();
       resp.Additional = GetBaseMissing(right, left).ToList();
@@ -89,7 +89,7 @@ namespace VerQL.Core.Comparer
       {
         var r = right.First(x => x.GetKey().Equals(l.GetKey(), StringComparison.OrdinalIgnoreCase));
         if (l.Definition.Equals(r.Definition, StringComparison.OrdinalIgnoreCase)) resp.Same.Add(l);
-        else resp.Different.Add(l);
+        else resp.Different.Add(new Tuple<T, T>(l, r));
       }
       resp.Missing = GetBaseMissing(left, right).ToList();
       resp.Additional = GetBaseMissing(right, left).ToList();

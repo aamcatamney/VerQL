@@ -46,7 +46,25 @@ namespace VerQL.Core.Loaders
       }
       resp.Database = ProcessStatments(sqlStatments);
 
+      resp.Warnings.AddRange(CheckProcedures(resp.Database));
+
       return resp;
+    }
+
+    private List<string> CheckProcedures(Database database)
+    {
+      var warnings = new List<string>();
+      var procs = new List<Procedure>();
+      foreach (var proc in database.Procedures.GroupBy(p => p.GetKey().ToLower()))
+      {
+        if (proc.Count() > 1)
+        {
+          warnings.Add($"Procedure: '{proc.Key}' is duplicated {proc.Count()} times");
+        }
+        procs.Add(proc.First());
+      }
+      database.Procedures = procs;
+      return warnings;
     }
 
     protected List<string> ParseFile(string path)

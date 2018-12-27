@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text;
 using VerQL.Core.Models;
 
@@ -5,7 +7,7 @@ namespace VerQL.Core.Scripters
 {
   public class ColumnScripter
   {
-    public string ScriptCreate(Column column)
+    public string ScriptCreate(Column column, bool StructureOnly = false)
     {
       var sb = new StringBuilder();
 
@@ -23,7 +25,7 @@ namespace VerQL.Core.Scripters
         }
       }
 
-      if (column.IsIdentity)
+      if (column.IsIdentity && !StructureOnly)
       {
         sb.Append("IDENTITY");
         if (column.SeedValue != 1 || column.IncrementValue != 1)
@@ -38,7 +40,7 @@ namespace VerQL.Core.Scripters
         sb.Append("PRIMARY KEY ");
       }
 
-      if (column.IsUnique)
+      if (column.IsUnique && !StructureOnly)
       {
         sb.Append("UNIQUE ");
       }
@@ -50,7 +52,7 @@ namespace VerQL.Core.Scripters
 
       sb.Append("NULL ");
 
-      if (column.HasDefault)
+      if (column.HasDefault && !StructureOnly)
       {
         if (!string.IsNullOrEmpty(column.DefaultName))
         {
@@ -60,6 +62,24 @@ namespace VerQL.Core.Scripters
       }
 
       return sb.ToString().Trim();
+    }
+
+    public List<string> ScriptAlter(Table table, Column left, Column right)
+    {
+      var alts = new List<string>();
+      if (!left.Type.Equals(right.Type, StringComparison.OrdinalIgnoreCase)
+          || left.MaxLength != right.MaxLength || left.IsNullable != right.IsNullable
+          || left.IsPrimaryKey != right.IsPrimaryKey)
+      {
+        alts.Add($"ALTER TABLE [{table.Schema}].[{table.Name}] ALTER COLUMN {ScriptCreate(right, true)}");
+      }
+
+      // Unique
+      if (!left.IsUnique && right.IsUnique)
+      {
+        alts.Add($"ALTER TABLE [{table.Schema}].[{table.Name}] ADD UNIQUE ([{right.Name}])");
+      }
+      return alts;
     }
   }
 }

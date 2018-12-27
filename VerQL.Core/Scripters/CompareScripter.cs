@@ -74,7 +74,7 @@ namespace VerQL.Core.Scripters
 
       foreach (var t in compareResponse.Triggers.Different)
       {
-        stage2.Add(new DefinitionBasedScripter().ScriptAlter(t));
+        stage2.Add(new DefinitionBasedScripter().ScriptAlter(t.Item2));
       }
 
       foreach (var v in compareResponse.Views.Missing)
@@ -84,7 +84,7 @@ namespace VerQL.Core.Scripters
 
       foreach (var v in compareResponse.Views.Different)
       {
-        stage3.Add(new DefinitionBasedScripter().ScriptAlter(v));
+        stage3.Add(new DefinitionBasedScripter().ScriptAlter(v.Item2));
       }
 
       foreach (var f in compareResponse.Functions.Missing)
@@ -94,7 +94,7 @@ namespace VerQL.Core.Scripters
 
       foreach (var f in compareResponse.Functions.Different)
       {
-        stage3.Add(new DefinitionBasedScripter().ScriptAlter(f));
+        stage3.Add(new DefinitionBasedScripter().ScriptAlter(f.Item2));
       }
 
       foreach (var sp in compareResponse.Procedures.Missing)
@@ -104,10 +104,10 @@ namespace VerQL.Core.Scripters
 
       foreach (var sp in compareResponse.Procedures.Different)
       {
-        stage3.Add(new DefinitionBasedScripter().ScriptAlter(sp));
+        stage3.Add(new DefinitionBasedScripter().ScriptAlter(sp.Item2));
       }
 
-      return (new[] { stage1, stage2, stage3 }).SelectMany(s => s).ToList();
+      return (new[] { stage1, stage2, stage3 }).SelectMany(s => s).Where(s => !string.IsNullOrEmpty(s)).ToList();
     }
   }
 }
