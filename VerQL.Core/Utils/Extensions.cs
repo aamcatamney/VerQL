@@ -56,7 +56,7 @@ namespace VerQL.Core.Utils
     }
 
 
-    public static List<string> TrueSplit(this string text, char separator = ',')
+    public static List<string> TrueSplit(this string text, bool keepSeparator = true, char separator = ',')
     {
       var lines = new List<string>();
       var sf = "";
@@ -75,7 +75,7 @@ namespace VerQL.Core.Utils
           lines.Add(sf);
           sf = "";
         }
-        sf += c;
+        if (c != separator || keepSeparator) sf += c;
       }
       sf = sf.Trim();
       if (sf.StartsWith(Convert.ToString(separator))) sf = sf.Substring(1);

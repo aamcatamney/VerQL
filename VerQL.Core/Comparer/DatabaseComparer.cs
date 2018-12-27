@@ -10,6 +10,10 @@ namespace VerQL.Core.Comparer
   {
     private BaseEqualityComparer BEC = new BaseEqualityComparer();
     private ColumnEqualityComparer CEC = new ColumnEqualityComparer();
+    private UniqueConstraintEqualityComparer UCEC = new UniqueConstraintEqualityComparer();
+    private PrimaryKeyConstraintEqualityComparer PCEC = new PrimaryKeyConstraintEqualityComparer();
+    private ForeignKeyConstraintEqualityComparer FCEC = new ForeignKeyConstraintEqualityComparer();
+    private IndexEqualityComparer ICEC = new IndexEqualityComparer();
     public CompareResponse Compare(Database left, Database right)
     {
       var resp = new CompareResponse();
@@ -21,6 +25,10 @@ namespace VerQL.Core.Comparer
       resp.UserTypes = CompareUserTypes(left.UserTypes, right.UserTypes);
       resp.Tables = CompareTables(left.Tables, right.Tables);
       resp.Columns = CompareColumns(left.Columns, right.Columns);
+      resp.UniqueConstraints = CompareUniqueConstraints(left.UniqueConstraints, right.UniqueConstraints);
+      resp.PrimaryKeyConstraints = ComparePrimaryKeyConstraints(left.PrimaryKeyConstraints, right.PrimaryKeyConstraints);
+      resp.ForeignKeyConstraints = CompareForeignKeyConstraints(left.ForeignKeyConstraints, right.ForeignKeyConstraints);
+      resp.Indexs = CompareIndexs(left.Indexs, right.Indexs);
       return resp;
     }
 
@@ -34,6 +42,62 @@ namespace VerQL.Core.Comparer
       }
       resp.Missing = GetBaseMissing(left, right).ToList();
       resp.Additional = GetBaseMissing(right, left).ToList();
+      return resp;
+    }
+
+    protected CompareResult<UniqueConstraint> CompareUniqueConstraints(IEnumerable<UniqueConstraint> left, IEnumerable<UniqueConstraint> right)
+    {
+      var resp = new CompareResult<UniqueConstraint>();
+      foreach (var l in GetTableIntersect(left, right))
+      {
+        var r = right.First(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
+        if (UCEC.Equals(l, r)) resp.Same.Add(l);
+        else resp.Different.Add(new Tuple<UniqueConstraint, UniqueConstraint>(l, r));
+      }
+      resp.Additional = GetTableMissing(right, left).ToList();
+      resp.Missing = GetTableMissing(left, right).ToList();
+      return resp;
+    }
+
+    protected CompareResult<PrimaryKeyConstraint> ComparePrimaryKeyConstraints(IEnumerable<PrimaryKeyConstraint> left, IEnumerable<PrimaryKeyConstraint> right)
+    {
+      var resp = new CompareResult<PrimaryKeyConstraint>();
+      foreach (var l in GetTableIntersect(left, right))
+      {
+        var r = right.First(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
+        if (PCEC.Equals(l, r)) resp.Same.Add(l);
+        else resp.Different.Add(new Tuple<PrimaryKeyConstraint, PrimaryKeyConstraint>(l, r));
+      }
+      resp.Additional = GetTableMissing(right, left).ToList();
+      resp.Missing = GetTableMissing(left, right).ToList();
+      return resp;
+    }
+
+    protected CompareResult<ForeignKeyConstraint> CompareForeignKeyConstraints(IEnumerable<ForeignKeyConstraint> left, IEnumerable<ForeignKeyConstraint> right)
+    {
+      var resp = new CompareResult<ForeignKeyConstraint>();
+      foreach (var l in GetTableIntersect(left, right))
+      {
+        var r = right.First(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
+        if (FCEC.Equals(l, r)) resp.Same.Add(l);
+        else resp.Different.Add(new Tuple<ForeignKeyConstraint, ForeignKeyConstraint>(l, r));
+      }
+      resp.Additional = GetTableMissing(right, left).ToList();
+      resp.Missing = GetTableMissing(left, right).ToList();
+      return resp;
+    }
+
+    protected CompareResult<Index> CompareIndexs(IEnumerable<Index> left, IEnumerable<Index> right)
+    {
+      var resp = new CompareResult<Index>();
+      foreach (var l in GetTableIntersect(left, right))
+      {
+        var r = right.First(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
+        if (ICEC.Equals(l, r)) resp.Same.Add(l);
+        else resp.Different.Add(new Tuple<Index, Index>(l, r));
+      }
+      resp.Additional = GetTableMissing(right, left).ToList();
+      resp.Missing = GetTableMissing(left, right).ToList();
       return resp;
     }
 

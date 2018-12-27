@@ -43,7 +43,12 @@ namespace VerQL.Core.Scripters
         var cols = compareResponse.Columns.Missing.FilterByTable(tbl).ToList();
         var pk = compareResponse.PrimaryKeyConstraints.Missing.FilterByTable(tbl).FirstOrDefault();
         var uq = compareResponse.UniqueConstraints.Missing.FilterByTable(tbl).ToList();
+        var indexs = compareResponse.Indexs.Missing.FilterByTable(tbl).ToList();
         stage1.Add(new TableScripter().ScriptCreate(tbl, pk, cols, uq));
+        foreach (var i in compareResponse.Indexs.Missing.FilterByTable(tbl))
+        {
+          stage2.Add(new IndexScripter().ScriptIndexCreate(i));
+        }
       }
 
       foreach (var tbl in compareResponse.Tables.Same)
@@ -59,6 +64,11 @@ namespace VerQL.Core.Scripters
         if (diffCols.Any())
         {
           stage1.Add(new TableScripter().ScriptAlter(tbl, diffCols));
+        }
+
+        foreach (var i in compareResponse.Indexs.Missing.FilterByTable(tbl))
+        {
+          stage2.Add(new IndexScripter().ScriptIndexCreate(i));
         }
       }
 

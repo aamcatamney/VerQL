@@ -77,6 +77,9 @@ namespace VerQL.Core.Loaders
           TrimDefinitions(db.Functions);
           db.Triggers = multi.Read<Trigger>().ToList();
           TrimDefinitions(db.Triggers);
+
+          db.Indexs = multi.Read<Index>().ToList();
+          MapIndexColumns(db.Indexs, multi.Read<DBIndexColumn>());
         }
       }
       return db;
@@ -146,6 +149,15 @@ namespace VerQL.Core.Loaders
       }
     }
 
+    private void MapIndexColumns(IEnumerable<Index> indexs, IEnumerable<DBIndexColumn> cols)
+    {
+      foreach (var i in indexs)
+      {
+        i.Columns = cols.Where(c => c.TableSchema == i.TableSchema && c.TableName == i.TableName && i.Name == c.Index && !c.Included).Select(c => (IndexColumn)c).ToList();
+        i.IncludedColumns = cols.Where(c => c.TableSchema == i.TableSchema && c.TableName == i.TableName && i.Name == c.Index && c.Included).Select(c => c.Name).ToList();
+      }
+    }
+
     protected class FBForeignKeyColumn
     {
       public string Schema { get; set; }
@@ -178,6 +190,14 @@ namespace VerQL.Core.Loaders
       public string TableName { get; set; }
       public string UQ { get; set; }
       public bool SystemNamed { get; set; }
+    }
+
+    protected class DBIndexColumn : IndexColumn
+    {
+      public string TableSchema { get; set; }
+      public string TableName { get; set; }
+      public string Index { get; set; }
+      public bool Included { get; set; }
     }
   }
 }

@@ -154,6 +154,14 @@ namespace VerQL.Core.Loaders
             db.Schemas.Add(t);
           }
         }
+        else if (spaceRemoved.Trim().StartsWith("create nonclustered index", StringComparison.OrdinalIgnoreCase) || spaceRemoved.Trim().StartsWith("create index", StringComparison.OrdinalIgnoreCase))
+        {
+          var t = ProcessIndex(s);
+          if (t != null)
+          {
+            db.Indexs.Add(t);
+          }
+        }
       }
       return db;
     }
@@ -434,7 +442,7 @@ namespace VerQL.Core.Loaders
       if (t.IndexOf("WITH", StringComparison.OrdinalIgnoreCase) > -1)
       {
         var with = t.Substring(t.IndexOf("WITH", StringComparison.OrdinalIgnoreCase) + 4);
-        var ws = with.Trim().RemoveBrackets().TrueSplit('=').Select(s => s.Trim()).ToList();
+        var ws = with.Trim().RemoveBrackets().TrueSplit(true, '=').Select(s => s.Trim()).ToList();
         ws.RemoveAt(0);
         pk.FillFactor = int.Parse(ws[0]);
 
@@ -497,6 +505,84 @@ namespace VerQL.Core.Loaders
       }
 
       return uc;
+    }
+
+    protected Index ProcessIndex(string text)
+    {
+      var t = new Regex(@"\s\s+").Replace(text, " ").Trim();
+      var i = new Index();
+
+      t = t.Replace(";", string.Empty);
+      if (t.EndsWith("GO", StringComparison.OrdinalIgnoreCase))
+      {
+        t = t.Substring(0, t.Length - 2).Trim();
+      }
+
+      if (t.IndexOf("INDEX", StringComparison.OrdinalIgnoreCase) > -1)
+      {
+        t = t.Substring(t.IndexOf("INDEX", StringComparison.OrdinalIgnoreCase) + 5).Trim();
+      }
+      var split = t.Split(null).ToList();
+
+      // name
+      i.Name = split[0].RemoveSquareBrackets();
+      split.RemoveAt(0);
+
+      // Remove UNIQUE
+      if (split.Any(s => s.Equals("UNIQUE", StringComparison.OrdinalIgnoreCase)))
+      {
+        i.IsUnique = true;
+        split.RemoveAll(s => s.Equals("UNIQUE", StringComparison.OrdinalIgnoreCase));
+        split = split.Select(s => s.StartsWith("UNIQUE", StringComparison.OrdinalIgnoreCase) ? s.Substring(6) : s).ToList();
+      }
+      t = string.Join(" ", split).Trim();
+
+      t = Regex.Replace(t, "NONCLUSTERED", "", RegexOptions.IgnoreCase);
+      t = Regex.Replace(t, "CLUSTERED", "", RegexOptions.IgnoreCase);
+
+      // Tbl
+      t = t.Substring(t.IndexOf(" ON ", StringComparison.OrdinalIgnoreCase) + 4).Trim();
+      split = t.Split('(').ToList();
+      i.TableName = split[0];
+      if (i.TableName.Contains("."))
+      {
+        i.TableSchema = i.TableName.Split(new[] { "." }, StringSplitOptions.None).FirstOrDefault();
+        i.TableName = i.TableName.Split(new[] { "." }, StringSplitOptions.None).LastOrDefault();
+      }
+      i.TableName = i.TableName.Trim().RemoveSquareBrackets().Trim();
+      i.TableSchema = i.TableSchema.Trim().RemoveSquareBrackets().Trim();
+      split.RemoveAt(0);
+      t = string.Join(" ", split).Trim();
+
+      var cols = t;
+      var icols = "";
+
+      if (t.IndexOf("INCLUDE", StringComparison.OrdinalIgnoreCase) > -1)
+      {
+        cols = t.Substring(0, t.IndexOf("INCLUDE", StringComparison.OrdinalIgnoreCase));
+        icols = t.Substring(t.IndexOf("INCLUDE", StringComparison.OrdinalIgnoreCase) + 7);
+      }
+
+      cols = cols.Trim().RemoveBrackets().Trim();
+      icols = icols.Trim().RemoveBrackets().Trim();
+
+      foreach (var c in cols.TrueSplit(false))
+      {
+        var col = new IndexColumn();
+        var colText = c.Trim().RemoveBrackets().Trim();
+        col.Asc = !colText.EndsWith("DESC", StringComparison.OrdinalIgnoreCase);
+        if (colText.EndsWith("DESC", StringComparison.OrdinalIgnoreCase)) colText = colText.Substring(0, colText.Length - 4);
+        else if (colText.EndsWith("ASC", StringComparison.OrdinalIgnoreCase)) colText = colText.Substring(0, colText.Length - 3);
+        col.Name = colText.Trim().RemoveSquareBrackets().Trim();
+        i.Columns.Add(col);
+      }
+
+      foreach (var c in icols.TrueSplit(false))
+      {
+        i.IncludedColumns.Add(c.Trim().RemoveBrackets().Trim().RemoveSquareBrackets().Trim());
+      }
+
+      return i;
     }
 
     protected Column ProcessColumn(string TableSchema, string TableName, string text)

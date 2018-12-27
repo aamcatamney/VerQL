@@ -15,5 +15,6 @@ namespace VerQL.Core.Models
     public List<Trigger> Triggers { get; set; } = new List<Trigger>();
     public List<UserType> UserTypes { get; set; } = new List<UserType>();
     public List<Schema> Schemas { get; set; } = new List<Schema>();
+    public List<Index> Indexs { get; set; } = new List<Index>();
   }
 }

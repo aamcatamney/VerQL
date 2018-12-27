@@ -195,3 +195,33 @@ from sys.triggers t
 	join sys.sql_modules m on m.object_id = t.object_id
 where t.is_ms_shipped = 0
 order by t.name
+
+-- 15. Indexs
+select s.name as [TableSchema], 
+	   t.name as [TableName],  
+	   i.name as [Name], 
+	   i.is_unique as [IsUnique]
+from sys.indexes i
+join sys.tables t on t.object_id = i.object_id
+join sys.schemas s on s.schema_id = t.schema_id
+where i.type = 2
+and i.is_unique_constraint = 0
+and i.is_primary_key = 0
+order by s.name, t.name, i.index_id
+
+-- 16. Index Columns
+select s.name as [TableSchema], 
+	   t.name as [TableName],  
+	   i.name as [IndexName], 
+	   c.name as [Name],
+	   cast(case when ic.is_descending_key = 0 then 1 else 0 end as bit) as [Asc],
+	   ic.is_included_column as [Included]
+from sys.index_columns ic
+join sys.columns c on c.object_id = ic.object_id and c.column_id = ic.column_id
+join sys.indexes i on ic.object_id = i.object_id and ic.index_id = i.index_id
+join sys.tables t on t.object_id = i.object_id
+join sys.schemas s on s.schema_id = t.schema_id
+where i.type = 2
+and i.is_unique_constraint = 0
+and i.is_primary_key = 0
+order by s.name, t.name, i.index_id, ic.index_column_id
