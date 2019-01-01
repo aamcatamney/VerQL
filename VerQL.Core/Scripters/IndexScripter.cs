@@ -36,5 +36,10 @@ namespace VerQL.Core.Scripters
 
       return sb.ToString().Trim();
     }
+
+    public string ScriptDrop(Index index)
+    {
+      return $"DROP INDEX [{index.Name}] ON [{index.TableSchema}].[{index.TableName}]";
+    }
   }
 }

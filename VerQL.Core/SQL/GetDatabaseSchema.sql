@@ -225,3 +225,28 @@ where i.type = 2
 and i.is_unique_constraint = 0
 and i.is_primary_key = 0
 order by s.name, t.name, i.index_id, ic.index_column_id
+
+-- 17. Extended Properties
+select ep.name as [Name],
+       ep.value as [Value],
+	   'SCHEMA' as [Level0Type],
+	   s.name as [Level0Name],
+	   case
+	     when ep.class = 1 and ao.type = 'U' then 'TABLE'
+		 when ep.class = 1 and ao.type = 'V' then 'VIEW'
+		 when ep.class = 6 then 'TYPE'
+	   end as [Level1Type],
+	   case
+		 when ep.class = 1 then ao.name
+	     when ep.class = 6 then t.name
+	   end as [Level1Name],
+	   case
+	     when ep.class = 1 and c.column_id is not null then 'COLUMN'
+	   end as [Level2Type],
+	   c.name as [Level2Name]
+from sys.extended_properties ep
+left join sys.all_objects ao on ep.class in (1,3,7) and ao.object_id = ep.major_id
+left join sys.types t on ep.class = 6 and t.user_type_id = ep.major_id
+left join sys.columns c on ep.class = 1 and c.object_id = ep.major_id and c.column_id = ep.minor_id
+left join sys.schemas s on s.schema_id = ao.schema_id or s.schema_id = t.schema_id
+where ep.class in (1,3,6,7)

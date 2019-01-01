@@ -14,6 +14,7 @@ namespace VerQL.Core.Comparer
     private PrimaryKeyConstraintEqualityComparer PCEC = new PrimaryKeyConstraintEqualityComparer();
     private ForeignKeyConstraintEqualityComparer FCEC = new ForeignKeyConstraintEqualityComparer();
     private IndexEqualityComparer ICEC = new IndexEqualityComparer();
+    private ExtendedPropertyEqualityComparer EPEC = new ExtendedPropertyEqualityComparer();
     public CompareResponse Compare(Database left, Database right)
     {
       var resp = new CompareResponse();
@@ -29,6 +30,7 @@ namespace VerQL.Core.Comparer
       resp.PrimaryKeyConstraints = ComparePrimaryKeyConstraints(left.PrimaryKeyConstraints, right.PrimaryKeyConstraints);
       resp.ForeignKeyConstraints = CompareForeignKeyConstraints(left.ForeignKeyConstraints, right.ForeignKeyConstraints);
       resp.Indexs = CompareIndexs(left.Indexs, right.Indexs);
+      resp.ExtendedProperties = CompareExtendedProperties(left.ExtendedProperties, right.ExtendedProperties);
       return resp;
     }
 
@@ -132,6 +134,20 @@ namespace VerQL.Core.Comparer
       return resp;
     }
 
+    protected CompareResult<ExtendedProperty> CompareExtendedProperties(IEnumerable<ExtendedProperty> left, IEnumerable<ExtendedProperty> right)
+    {
+      var resp = new CompareResult<ExtendedProperty>();
+      foreach (var l in GetExtendedPropertyIntersect(left, right))
+      {
+        var r = right.First(x => GetExtendedPropertyMatch(x, l));
+        if (EPEC.Equals(l, r)) resp.Same.Add(l);
+        else resp.Different.Add(new Tuple<ExtendedProperty, ExtendedProperty>(l, r));
+      }
+      resp.Additional = GetExtendedPropertyMissing(right, left).ToList();
+      resp.Missing = GetExtendedPropertyMissing(left, right).ToList();
+      return resp;
+    }
+
     protected CompareResult<UserType> CompareUserTypes(List<UserType> left, List<UserType> right)
     {
       var resp = new CompareResult<UserType>();
@@ -178,6 +194,27 @@ namespace VerQL.Core.Comparer
     private IEnumerable<T> GetTableIntersect<T>(IEnumerable<T> left, IEnumerable<T> right) where T : TableBase
     {
       return left.Where(r => right.Any(x => x.GetTableKey().Equals(r.GetTableKey(), StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private IEnumerable<ExtendedProperty> GetExtendedPropertyMissing(IEnumerable<ExtendedProperty> left, IEnumerable<ExtendedProperty> right)
+    {
+      return right.Where(r => !left.Any(x => GetExtendedPropertyMatch(r, x)));
+    }
+
+    private IEnumerable<ExtendedProperty> GetExtendedPropertyIntersect(IEnumerable<ExtendedProperty> left, IEnumerable<ExtendedProperty> right)
+    {
+      return left.Where(r => right.Any(x => GetExtendedPropertyMatch(r, x)));
+    }
+
+    private bool GetExtendedPropertyMatch(ExtendedProperty x, ExtendedProperty r)
+    {
+      return (x.Name ?? "").Equals(r.Name ?? "", StringComparison.OrdinalIgnoreCase) &&
+             (x.Level0Name ?? "").Equals(r.Level0Name ?? "", StringComparison.OrdinalIgnoreCase) &&
+             (x.Level0Type ?? "").Equals(r.Level0Type ?? "", StringComparison.OrdinalIgnoreCase) &&
+             (x.Level1Name ?? "").Equals(r.Level1Name ?? "", StringComparison.OrdinalIgnoreCase) &&
+             (x.Level1Type ?? "").Equals(r.Level1Type ?? "", StringComparison.OrdinalIgnoreCase) &&
+             (x.Level2Name ?? "").Equals(r.Level2Name ?? "", StringComparison.OrdinalIgnoreCase) &&
+             (x.Level2Type ?? "").Equals(r.Level2Type ?? "", StringComparison.OrdinalIgnoreCase);
     }
   }
 }

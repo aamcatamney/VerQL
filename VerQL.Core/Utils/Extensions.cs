@@ -55,6 +55,25 @@ namespace VerQL.Core.Utils
       return $"[{b.TableSchema}].[{b.TableName}]";
     }
 
+    public static string TrimGoAndSemi(this string text)
+    {
+      var r = text.Trim();
+      for (int i = 0; i < 4; i++)
+      {
+        if (r.EndsWith(";")) r = r.Remove(r.Length - 1).Trim();
+        if (r.EndsWith("GO", StringComparison.OrdinalIgnoreCase)) r = r.Remove(r.Length - 2).Trim();
+      }
+      return r;
+    }
+
+    public static string RemoveNAndQuotes(this string text)
+    {
+      var r = text.Trim();
+      if (r.StartsWith("N")) r = r.Remove(0, 1).Trim();
+      if (r.StartsWith("'")) r = r.Remove(0, 1).Trim();
+      if (r.EndsWith("'")) r = r.Remove(r.Length - 1).Trim();
+      return r;
+    }
 
     public static List<string> TrueSplit(this string text, bool keepSeparator = true, char separator = ',')
     {

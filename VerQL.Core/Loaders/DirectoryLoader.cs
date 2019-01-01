@@ -162,6 +162,14 @@ namespace VerQL.Core.Loaders
             db.Indexs.Add(t);
           }
         }
+        else if (spaceRemoved.Trim().StartsWith("execute sp_addextendedproperty", StringComparison.OrdinalIgnoreCase))
+        {
+          var t = ProcessExtendedProperty(s);
+          if (t != null)
+          {
+            db.ExtendedProperties.Add(t);
+          }
+        }
       }
       return db;
     }
@@ -583,6 +591,51 @@ namespace VerQL.Core.Loaders
       }
 
       return i;
+    }
+
+    protected ExtendedProperty ProcessExtendedProperty(string text)
+    {
+      var split = text.TrimGoAndSemi().TrueSplit(false).Select(t => t.Trim()).Select(s => s.Split(new[] { '@' }).LastOrDefault()).ToList();
+      var ep = new ExtendedProperty();
+      foreach (var s in split)
+      {
+        var key = s.Split(new[] { '=' }).First().RemoveNAndQuotes();
+        var value = s.Split(new[] { '=' }).Last().RemoveNAndQuotes();
+
+        if (key.Equals("name", StringComparison.OrdinalIgnoreCase))
+        {
+          ep.Name = value;
+        }
+        else if (key.Equals("value", StringComparison.OrdinalIgnoreCase))
+        {
+          ep.Value = value;
+        }
+        else if (key.Equals("level0type", StringComparison.OrdinalIgnoreCase))
+        {
+          ep.Level0Type = value;
+        }
+        else if (key.Equals("level0name", StringComparison.OrdinalIgnoreCase))
+        {
+          ep.Level0Name = value;
+        }
+        else if (key.Equals("level1type", StringComparison.OrdinalIgnoreCase))
+        {
+          ep.Level1Type = value;
+        }
+        else if (key.Equals("level1name", StringComparison.OrdinalIgnoreCase))
+        {
+          ep.Level1Name = value;
+        }
+        else if (key.Equals("level2type", StringComparison.OrdinalIgnoreCase))
+        {
+          ep.Level2Type = value;
+        }
+        else if (key.Equals("level2name", StringComparison.OrdinalIgnoreCase))
+        {
+          ep.Level2Name = value;
+        }
+      }
+      return ep;
     }
 
     protected Column ProcessColumn(string TableSchema, string TableName, string text)

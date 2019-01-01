@@ -80,6 +80,8 @@ namespace VerQL.Core.Loaders
 
           db.Indexs = multi.Read<Index>().ToList();
           MapIndexColumns(db.Indexs, multi.Read<DBIndexColumn>());
+
+          db.ExtendedProperties = multi.Read<ExtendedProperty>().ToList();
         }
       }
       return db;
@@ -153,8 +155,8 @@ namespace VerQL.Core.Loaders
     {
       foreach (var i in indexs)
       {
-        i.Columns = cols.Where(c => c.TableSchema == i.TableSchema && c.TableName == i.TableName && i.Name == c.Index && !c.Included).Select(c => (IndexColumn)c).ToList();
-        i.IncludedColumns = cols.Where(c => c.TableSchema == i.TableSchema && c.TableName == i.TableName && i.Name == c.Index && c.Included).Select(c => c.Name).ToList();
+        i.Columns = cols.Where(c => c.TableSchema == i.TableSchema && c.TableName == i.TableName && i.Name == c.IndexName && !c.Included).Select(c => (IndexColumn)c).ToList();
+        i.IncludedColumns = cols.Where(c => c.TableSchema == i.TableSchema && c.TableName == i.TableName && i.Name == c.IndexName && c.Included).Select(c => c.Name).ToList();
       }
     }
 
@@ -196,7 +198,7 @@ namespace VerQL.Core.Loaders
     {
       public string TableSchema { get; set; }
       public string TableName { get; set; }
-      public string Index { get; set; }
+      public string IndexName { get; set; }
       public bool Included { get; set; }
     }
   }

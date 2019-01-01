@@ -17,5 +17,6 @@ namespace VerQL.Core.Comparer
     public CompareResult<ForeignKeyConstraint> ForeignKeyConstraints { get; set; } = new CompareResult<ForeignKeyConstraint>();
     public CompareResult<UniqueConstraint> UniqueConstraints { get; set; } = new CompareResult<UniqueConstraint>();
     public CompareResult<Index> Indexs { get; set; } = new CompareResult<Index>();
+    public CompareResult<ExtendedProperty> ExtendedProperties { get; set; } = new CompareResult<ExtendedProperty>();
   }
 }

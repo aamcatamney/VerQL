@@ -16,5 +16,6 @@ namespace VerQL.Core.Models
     public List<UserType> UserTypes { get; set; } = new List<UserType>();
     public List<Schema> Schemas { get; set; } = new List<Schema>();
     public List<Index> Indexs { get; set; } = new List<Index>();
+    public List<ExtendedProperty> ExtendedProperties { get; set; } = new List<ExtendedProperty>();
   }
 }
