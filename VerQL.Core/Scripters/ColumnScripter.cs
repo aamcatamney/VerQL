@@ -81,5 +81,10 @@ namespace VerQL.Core.Scripters
       }
       return alts;
     }
+
+    public string CheckExists(Table table, Column col)
+    {
+      return $"if exists (select * from sys.columns where object_id = OBJECT_ID('[{table.Schema}].[{table.Name}]', 'U') and name = '{col.Name}')";
+    }
   }
 }

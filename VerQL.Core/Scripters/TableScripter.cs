@@ -36,6 +36,7 @@ namespace VerQL.Core.Scripters
       var sb = new StringBuilder();
       foreach (var c in columns)
       {
+        sb.AppendLine(new ColumnScripter().CheckExists(table, c));
         sb.AppendLine($"ALTER TABLE [{table.Schema}].[{table.Name}] ADD {new ColumnScripter().ScriptCreate(c)};");
       }
       return sb.ToString();
