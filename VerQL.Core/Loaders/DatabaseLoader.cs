@@ -29,6 +29,17 @@ namespace VerQL.Core.Loaders
         return resp;
       }
 
+      try
+      {
+        var c = new SqlConnectionStringBuilder(_connString);
+      }
+      catch (Exception)
+      {
+        resp.Errors.Add("Invalid Connection string");
+        return resp;
+      }
+
+
       resp.Database = GetDatabaseSchema();
 
       return resp;
