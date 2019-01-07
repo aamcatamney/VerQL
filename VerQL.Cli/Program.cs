@@ -6,6 +6,7 @@ using VerQL.Core.Models;
 using VerQL.Core.Comparer;
 using VerQL.Core.Scripters;
 using VerQL.Core.Deployer;
+using System.Collections.Generic;
 
 namespace VerQL.Cli
 {
@@ -13,12 +14,6 @@ namespace VerQL.Cli
   {
     static void Main(string[] args)
     {
-      var source = "SOME_SOURCE";
-      var target = "SOME_TAGRET";
-      var dep = new DatabaseDeployer(target, source);
-      var tsk = dep.DeployAsync();
-      tsk.Wait();
-      var result = tsk.Result;
     }
   }
 }

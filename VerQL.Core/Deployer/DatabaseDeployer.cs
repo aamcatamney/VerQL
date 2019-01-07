@@ -1,21 +1,28 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using VerQL.Core.Loaders;
+using VerQL.Core.Scripters;
 
 namespace VerQL.Core.Deployer
 {
   public class DatabaseDeployer
   {
+    private readonly Dictionary<string, string> vars;
+    private readonly ScriptingOptions options;
     private readonly string _target;
     private readonly string _source;
-    public DatabaseDeployer(string TargetConnectionString, string Source)
+    public DatabaseDeployer(string TargetConnectionString, string Source, ScriptingOptions options, Dictionary<string, string> vars = null)
     {
       this._target = TargetConnectionString;
       this._source = Source;
+      this.vars = vars ?? new Dictionary<string, string>();
+      this.options = options ?? new ScriptingOptions();
     }
 
     private LoaderResponse GetSource()
@@ -48,25 +55,28 @@ namespace VerQL.Core.Deployer
       }
       if (left.Successful && right.Successful)
       {
-        var compare = new Comparer.DatabaseComparer().Compare(left.Database, right.Database);
-        var scripts = new Scripters.CompareScripter().ScriptCompareAsStatments(compare);
-        using (var conn = new SqlConnection(_target))
+        var compare = new Comparer.DatabaseComparer(this.vars).Compare(left.Database, right.Database);
+        var scripts = new Scripters.CompareScripter(this.options, this.vars).ScriptCompareAsStatments(compare);
+        if (scripts != null && scripts.Any())
         {
-          await conn.OpenAsync();
-          using (var tran = conn.BeginTransaction())
+          using (var conn = new SqlConnection(_target))
           {
-            try
+            await conn.OpenAsync();
+            using (var tran = conn.BeginTransaction())
             {
-              foreach (var script in scripts)
+              try
               {
-                await conn.ExecuteAsync(script, commandType: CommandType.Text, commandTimeout: 0, transaction: tran);
+                foreach (var script in scripts)
+                {
+                  await conn.ExecuteAsync(script, commandType: CommandType.Text, commandTimeout: 0, transaction: tran);
+                }
+                tran.Commit();
               }
-              tran.Commit();
-            }
-            catch (Exception er)
-            {
-              tran.Rollback();
-              resp.Errors.Add(er.Message);
+              catch (Exception er)
+              {
+                tran.Rollback();
+                resp.Errors.Add(er.Message);
+              }
             }
           }
         }

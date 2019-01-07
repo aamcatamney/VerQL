@@ -8,6 +8,7 @@ namespace VerQL.Core.Comparer
 {
   public class DatabaseComparer
   {
+    private readonly Dictionary<string, string> vars;
     private BaseEqualityComparer BEC = new BaseEqualityComparer();
     private ColumnEqualityComparer CEC = new ColumnEqualityComparer();
     private UniqueConstraintEqualityComparer UCEC = new UniqueConstraintEqualityComparer();
@@ -15,6 +16,15 @@ namespace VerQL.Core.Comparer
     private ForeignKeyConstraintEqualityComparer FCEC = new ForeignKeyConstraintEqualityComparer();
     private IndexEqualityComparer ICEC = new IndexEqualityComparer();
     private ExtendedPropertyEqualityComparer EPEC = new ExtendedPropertyEqualityComparer();
+
+    public DatabaseComparer(Dictionary<string, string> vars = null)
+    {
+      this.vars = vars;
+      if (this.vars == null)
+      {
+        this.vars = new Dictionary<string, string>();
+      }
+    }
     public CompareResponse Compare(Database left, Database right)
     {
       var resp = new CompareResponse();
@@ -50,13 +60,14 @@ namespace VerQL.Core.Comparer
     protected CompareResult<UniqueConstraint> CompareUniqueConstraints(IEnumerable<UniqueConstraint> left, IEnumerable<UniqueConstraint> right)
     {
       var resp = new CompareResult<UniqueConstraint>();
+      resp.Additional = GetTableMissing(right, left).ToList();
       foreach (var l in GetTableIntersect(left, right))
       {
-        var r = right.First(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
-        if (UCEC.Equals(l, r)) resp.Same.Add(l);
+        var r = right.FirstOrDefault(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
+        if (r == null) resp.Additional.Add(l);
+        else if (UCEC.Equals(l, r)) resp.Same.Add(l);
         else resp.Different.Add(new Tuple<UniqueConstraint, UniqueConstraint>(l, r));
       }
-      resp.Additional = GetTableMissing(right, left).ToList();
       resp.Missing = GetTableMissing(left, right).ToList();
       return resp;
     }
@@ -64,13 +75,14 @@ namespace VerQL.Core.Comparer
     protected CompareResult<PrimaryKeyConstraint> ComparePrimaryKeyConstraints(IEnumerable<PrimaryKeyConstraint> left, IEnumerable<PrimaryKeyConstraint> right)
     {
       var resp = new CompareResult<PrimaryKeyConstraint>();
+      resp.Additional = GetTableMissing(right, left).ToList();
       foreach (var l in GetTableIntersect(left, right))
       {
-        var r = right.First(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
-        if (PCEC.Equals(l, r)) resp.Same.Add(l);
+        var r = right.FirstOrDefault(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
+        if (r == null) resp.Additional.Add(l);
+        else if (PCEC.Equals(l, r)) resp.Same.Add(l);
         else resp.Different.Add(new Tuple<PrimaryKeyConstraint, PrimaryKeyConstraint>(l, r));
       }
-      resp.Additional = GetTableMissing(right, left).ToList();
       resp.Missing = GetTableMissing(left, right).ToList();
       return resp;
     }
@@ -78,13 +90,14 @@ namespace VerQL.Core.Comparer
     protected CompareResult<ForeignKeyConstraint> CompareForeignKeyConstraints(IEnumerable<ForeignKeyConstraint> left, IEnumerable<ForeignKeyConstraint> right)
     {
       var resp = new CompareResult<ForeignKeyConstraint>();
+      resp.Additional = GetTableMissing(right, left).ToList();
       foreach (var l in GetTableIntersect(left, right))
       {
-        var r = right.First(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
-        if (FCEC.Equals(l, r)) resp.Same.Add(l);
+        var r = right.FirstOrDefault(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && (x.Name ?? string.Empty).Equals((l.Name ?? string.Empty), StringComparison.OrdinalIgnoreCase));
+        if (r == null) resp.Additional.Add(l);
+        else if (FCEC.Equals(l, r)) resp.Same.Add(l);
         else resp.Different.Add(new Tuple<ForeignKeyConstraint, ForeignKeyConstraint>(l, r));
       }
-      resp.Additional = GetTableMissing(right, left).ToList();
       resp.Missing = GetTableMissing(left, right).ToList();
       return resp;
     }
@@ -92,13 +105,14 @@ namespace VerQL.Core.Comparer
     protected CompareResult<Index> CompareIndexs(IEnumerable<Index> left, IEnumerable<Index> right)
     {
       var resp = new CompareResult<Index>();
+      resp.Additional = GetTableMissing(right, left).ToList();
       foreach (var l in GetTableIntersect(left, right))
       {
-        var r = right.First(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
-        if (ICEC.Equals(l, r)) resp.Same.Add(l);
+        var r = right.FirstOrDefault(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
+        if (r == null) resp.Additional.Add(l);
+        else if (ICEC.Equals(l, r)) resp.Same.Add(l);
         else resp.Different.Add(new Tuple<Index, Index>(l, r));
       }
-      resp.Additional = GetTableMissing(right, left).ToList();
       resp.Missing = GetTableMissing(left, right).ToList();
       return resp;
     }
@@ -106,13 +120,14 @@ namespace VerQL.Core.Comparer
     protected CompareResult<Column> CompareColumns(IEnumerable<Column> left, IEnumerable<Column> right)
     {
       var resp = new CompareResult<Column>();
+      resp.Additional = GetTableMissing(right, left).ToList();
       foreach (var l in GetTableIntersect(left, right))
       {
-        var r = right.First(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
-        if (CEC.Equals(l, r)) resp.Same.Add(l);
+        var r = right.FirstOrDefault(x => x.GetTableKey().Equals(l.GetTableKey(), StringComparison.OrdinalIgnoreCase) && x.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase));
+        if (r == null) resp.Additional.Add(l);
+        else if (CEC.Equals(l, r)) resp.Same.Add(l);
         else resp.Different.Add(new Tuple<Column, Column>(l, r));
       }
-      resp.Additional = GetTableMissing(right, left).ToList();
       resp.Missing = GetTableMissing(left, right).ToList();
       return resp;
     }
@@ -137,13 +152,14 @@ namespace VerQL.Core.Comparer
     protected CompareResult<ExtendedProperty> CompareExtendedProperties(IEnumerable<ExtendedProperty> left, IEnumerable<ExtendedProperty> right)
     {
       var resp = new CompareResult<ExtendedProperty>();
+      resp.Additional = GetExtendedPropertyMissing(right, left).ToList();
       foreach (var l in GetExtendedPropertyIntersect(left, right))
       {
-        var r = right.First(x => GetExtendedPropertyMatch(x, l));
-        if (EPEC.Equals(l, r)) resp.Same.Add(l);
+        var r = right.FirstOrDefault(x => GetExtendedPropertyMatch(x, l));
+        if (r == null) resp.Missing.Add(l);
+        else if (EPEC.Equals(l, r)) resp.Same.Add(l);
         else resp.Different.Add(new Tuple<ExtendedProperty, ExtendedProperty>(l, r));
       }
-      resp.Additional = GetExtendedPropertyMissing(right, left).ToList();
       resp.Missing = GetExtendedPropertyMissing(left, right).ToList();
       return resp;
     }
@@ -151,14 +167,15 @@ namespace VerQL.Core.Comparer
     protected CompareResult<UserType> CompareUserTypes(List<UserType> left, List<UserType> right)
     {
       var resp = new CompareResult<UserType>();
+      resp.Additional = GetBaseMissing(right, left).ToList();
       foreach (UserType l in left.Intersect(right, BEC))
       {
-        var r = right.First(x => x.GetKey().Equals(l.GetKey()));
-        if (l.IsNullable == r.IsNullable && l.MaxLength == r.MaxLength && l.Type.Equals(r.Type, StringComparison.OrdinalIgnoreCase)) resp.Same.Add(l);
+        var r = right.FirstOrDefault(x => x.GetKey().Equals(l.GetKey()));
+        if (r == null) resp.Missing.Add(l);
+        else if (l.IsNullable == r.IsNullable && l.MaxLength == r.MaxLength && l.Type.Equals(r.Type, StringComparison.OrdinalIgnoreCase)) resp.Same.Add(l);
         else resp.Different.Add(new Tuple<UserType, UserType>(l, r));
       }
       resp.Missing = GetBaseMissing(left, right).ToList();
-      resp.Additional = GetBaseMissing(right, left).ToList();
       return resp;
     }
 
@@ -168,7 +185,7 @@ namespace VerQL.Core.Comparer
       foreach (T l in GetBaseIntersect(left, right))
       {
         var r = right.First(x => x.GetKey().Equals(l.GetKey(), StringComparison.OrdinalIgnoreCase));
-        if (l.Definition.Equals(r.Definition, StringComparison.OrdinalIgnoreCase)) resp.Same.Add(l);
+        if (l.ReplaceVars(vars).Equals(r.ReplaceVars(vars), StringComparison.OrdinalIgnoreCase)) resp.Same.Add(l);
         else resp.Different.Add(new Tuple<T, T>(l, r));
       }
       resp.Missing = GetBaseMissing(left, right).ToList();

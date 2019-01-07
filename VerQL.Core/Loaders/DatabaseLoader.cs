@@ -67,8 +67,16 @@ namespace VerQL.Core.Loaders
           db.Tables = multi.Read<Table>().ToList();
           db.Columns = multi.Read<Column>().ToList();
           db.Columns.RemoveDefaults();
-          db.ForeignKeyConstraints = multi.Read<ForeignKeyConstraint>().ToList();
-          MapForeignKeyColumns(db.ForeignKeyConstraints, multi.Read<FBForeignKeyColumn>());
+          var fks = multi.Read<DBForeignKeyConstraint>().ToList();
+          MapForeignKeyColumns(fks, multi.Read<FBForeignKeyColumn>());
+          foreach (var fk in fks)
+          {
+            if (fk.SystemNamed)
+            {
+              fk.Name = null;
+            }
+          }
+          db.ForeignKeyConstraints = fks.Select(c => (ForeignKeyConstraint)c).ToList();
 
           var pkc = multi.Read<DBPrimaryKeyConstraint>().ToList();
           MapPrimaryKeyColumns(pkc, multi.Read<DBPrimaryKeyColumn>());
@@ -137,7 +145,7 @@ namespace VerQL.Core.Loaders
       }
     }
 
-    private void MapForeignKeyColumns(IEnumerable<ForeignKeyConstraint> fks, IEnumerable<FBForeignKeyColumn> cols)
+    private void MapForeignKeyColumns(IEnumerable<DBForeignKeyConstraint> fks, IEnumerable<FBForeignKeyColumn> cols)
     {
       foreach (var fk in fks)
       {
@@ -169,6 +177,11 @@ namespace VerQL.Core.Loaders
         i.Columns = cols.Where(c => c.TableSchema == i.TableSchema && c.TableName == i.TableName && i.Name == c.IndexName && !c.Included).Select(c => (IndexColumn)c).ToList();
         i.IncludedColumns = cols.Where(c => c.TableSchema == i.TableSchema && c.TableName == i.TableName && i.Name == c.IndexName && c.Included).Select(c => c.Name).ToList();
       }
+    }
+
+    protected class DBForeignKeyConstraint : ForeignKeyConstraint
+    {
+      public bool SystemNamed { get; set; }
     }
 
     protected class FBForeignKeyColumn

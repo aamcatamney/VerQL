@@ -42,6 +42,17 @@ namespace VerQL.Core.Scripters
       return sb.ToString();
     }
 
+    public string ScriptDropColumns(Table table, List<Column> columns)
+    {
+      var sb = new StringBuilder();
+      foreach (var c in columns)
+      {
+        sb.AppendLine(new ColumnScripter().CheckExists(table, c));
+        sb.AppendLine($"ALTER TABLE [{table.Schema}].[{table.Name}] DROP COLUMN [{c.Name}];");
+      }
+      return sb.ToString();
+    }
+
     public string ScriptAlter(Table table, List<Tuple<Column, Column>> columns)
     {
       var sb = new StringBuilder();

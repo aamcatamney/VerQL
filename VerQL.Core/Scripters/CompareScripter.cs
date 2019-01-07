@@ -8,9 +8,17 @@ namespace VerQL.Core.Scripters
 {
   public class CompareScripter
   {
+    private readonly Dictionary<string, string> vars;
+    private readonly ScriptingOptions options;
     private List<string> Stage1 = new List<string>();
     private List<string> Stage2 = new List<string>();
     private List<string> Stage3 = new List<string>();
+
+    public CompareScripter(ScriptingOptions options, Dictionary<string, string> vars)
+    {
+      this.options = options;
+      this.vars = vars;
+    }
 
     public string ScriptCompareAsFile(CompareResponse compareResponse)
     {
@@ -73,22 +81,22 @@ namespace VerQL.Core.Scripters
 
       foreach (var t in compareResponse.Triggers.Missing)
       {
-        Stage2.Add(new DefinitionBasedScripter().ScriptCreate(t));
+        Stage2.Add(new DefinitionBasedScripter(vars).ScriptCreate(t));
       }
 
       foreach (var v in compareResponse.Views.Missing)
       {
-        Stage3.Add(new DefinitionBasedScripter().ScriptCreate(v));
+        Stage3.Add(new DefinitionBasedScripter(vars).ScriptCreate(v));
       }
 
       foreach (var f in compareResponse.Functions.Missing)
       {
-        Stage3.Add(new DefinitionBasedScripter().ScriptCreate(f));
+        Stage3.Add(new DefinitionBasedScripter(vars).ScriptCreate(f));
       }
 
       foreach (var sp in compareResponse.Procedures.Missing)
       {
-        Stage3.Add(new DefinitionBasedScripter().ScriptCreate(sp));
+        Stage3.Add(new DefinitionBasedScripter(vars).ScriptCreate(sp));
       }
 
       foreach (var ep in compareResponse.ExtendedProperties.Missing)
@@ -118,22 +126,22 @@ namespace VerQL.Core.Scripters
 
       foreach (var t in compareResponse.Triggers.Different)
       {
-        Stage2.Add(new DefinitionBasedScripter().ScriptAlter(t.Item2));
+        Stage2.Add(new DefinitionBasedScripter(vars).ScriptAlter(t.Item2));
       }
 
       foreach (var v in compareResponse.Views.Different)
       {
-        Stage3.Add(new DefinitionBasedScripter().ScriptAlter(v.Item2));
+        Stage3.Add(new DefinitionBasedScripter(vars).ScriptAlter(v.Item2));
       }
 
       foreach (var f in compareResponse.Functions.Different)
       {
-        Stage3.Add(new DefinitionBasedScripter().ScriptAlter(f.Item2));
+        Stage3.Add(new DefinitionBasedScripter(vars).ScriptAlter(f.Item2));
       }
 
       foreach (var sp in compareResponse.Procedures.Different)
       {
-        Stage3.Add(new DefinitionBasedScripter().ScriptAlter(sp.Item2));
+        Stage3.Add(new DefinitionBasedScripter(vars).ScriptAlter(sp.Item2));
       }
 
       foreach (var ep in compareResponse.ExtendedProperties.Different)
@@ -145,7 +153,60 @@ namespace VerQL.Core.Scripters
 
     private void ScriptAdditional(CompareResponse compareResponse)
     {
-      foreach (var s in compareResponse.Schemas.Additional)
+      foreach (var ep in compareResponse.ExtendedProperties.Additional)
+      {
+        Stage3.Add(new ExtendedPropertyScripter().ScriptDrop(ep));
+      }
+
+      if (options.DropProceduresNotInSource)
+      {
+        foreach (var sp in compareResponse.Procedures.Additional)
+        {
+          Stage3.Add(new DefinitionBasedScripter().ScriptDrop(sp));
+        }
+      }
+
+      if (options.DropViewsNotInSource)
+      {
+        foreach (var v in compareResponse.Views.Additional)
+        {
+          Stage3.Add(new DefinitionBasedScripter().ScriptDrop(v));
+        }
+      }
+
+      foreach (var f in compareResponse.Functions.Additional)
+      {
+        Stage3.Add(new DefinitionBasedScripter().ScriptDrop(f));
+      }
+
+      foreach (var t in compareResponse.Triggers.Additional)
+      {
+        Stage3.Add(new DefinitionBasedScripter().ScriptDrop(t));
+      }
+
+      foreach (var tbl in compareResponse.Tables.Same)
+      {
+        if (!options.BlockOnPossibleDataLoss)
+        {
+          var addCols = compareResponse.Columns.Additional.FilterByTable(tbl).ToList();
+          //var pk = compareResponse.PrimaryKeyConstraints.Missing.FilterByTable(tbl).FirstOrDefault();
+          //var uq = compareResponse.UniqueConstraints.Missing.FilterByTable(tbl).ToList();
+          if (addCols.Any())
+          {
+            Stage1.Add(new TableScripter().ScriptDropColumns(tbl, addCols));
+          }
+        }
+
+        if (options.DropIndexesNotInSource)
+        {
+          foreach (var i in compareResponse.Indexs.Additional.FilterByTable(tbl))
+          {
+            Stage2.Add(new IndexScripter().ScriptDrop(i));
+          }
+        }
+      }
+
+      foreach (var tbl in compareResponse.Tables.Additional)
       {
 
       }
@@ -155,30 +216,9 @@ namespace VerQL.Core.Scripters
 
       }
 
-      foreach (var tbl in compareResponse.Tables.Additional)
+      foreach (var s in compareResponse.Schemas.Additional)
       {
 
-      }
-
-      foreach (var t in compareResponse.Triggers.Additional)
-      {
-      }
-
-      foreach (var v in compareResponse.Views.Additional)
-      {
-      }
-
-      foreach (var f in compareResponse.Functions.Additional)
-      {
-      }
-
-      foreach (var sp in compareResponse.Procedures.Additional)
-      {
-      }
-
-      foreach (var ep in compareResponse.ExtendedProperties.Additional)
-      {
-        Stage3.Add(new ExtendedPropertyScripter().ScriptDrop(ep));
       }
     }
 

@@ -147,5 +147,29 @@ namespace VerQL.Core.Utils
         c.RemoveDefault();
       }
     }
+
+    public static string ReplaceVars(this DefinitionBased definition, Dictionary<string, string> vars)
+    {
+      var result = definition.Definition;
+      if (!string.IsNullOrEmpty(result) && vars != null)
+      {
+        foreach (var v in vars)
+        {
+          var wv = $"$({v.Key})";
+          while (result.IndexOf(wv, StringComparison.OrdinalIgnoreCase) > -1)
+          {
+            var index = result.IndexOf(wv, StringComparison.OrdinalIgnoreCase);
+            result = result.Insert(index, v.Value);
+            result = result.Remove(index + v.Value.Length, wv.Length);
+          }
+        }
+      }
+      return result;
+    }
+
+    public static string GetDefinitionBasedTypeName(this DefinitionBased definition)
+    {
+      return definition.GetType().Name;
+    }
   }
 }

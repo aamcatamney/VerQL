@@ -226,6 +226,10 @@ namespace VerQL.Core.Loaders
       {
         def.Schema = def.Name.Split(new[] { "." }, StringSplitOptions.None).FirstOrDefault();
         def.Name = def.Name.Split(new[] { "." }, StringSplitOptions.None).LastOrDefault();
+        if (def.Name.Contains("("))
+        {
+          def.Name = def.Name.Split(new[] { "(" }, StringSplitOptions.None).FirstOrDefault();
+        }
       }
       def.Name = def.Name.RemoveSquareBrackets();
       def.Schema = def.Schema.RemoveSquareBrackets();
@@ -290,7 +294,9 @@ namespace VerQL.Core.Loaders
         if (t.EndsWith(",")) t = t.Substring(0, t.Length - 1);
         t = t.Trim();
 
-        if (t.StartsWith("CONSTRAINT", StringComparison.OrdinalIgnoreCase) || t.StartsWith("UNIQUE", StringComparison.OrdinalIgnoreCase))
+        if (t.StartsWith("CONSTRAINT", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("UNIQUE", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("FOREIGN KEY", StringComparison.OrdinalIgnoreCase))
         {
           if (t.IndexOf("PRIMARY KEY", StringComparison.OrdinalIgnoreCase) > -1)
           {
@@ -485,7 +491,7 @@ namespace VerQL.Core.Loaders
       var split = t.Split(null).ToList();
 
       // Have name
-      if (!new[] { "NONCLUSTERED", "CLUSTERED", "UNIQUE" }.Any(s => split[0].RemoveSquareBrackets().StartsWith(s, StringComparison.OrdinalIgnoreCase)))
+      if (!new[] { "NONCLUSTERED", "CLUSTERED", "UNIQUE" }.Any(s => split[0].StartsWith(s, StringComparison.OrdinalIgnoreCase)))
       {
         uc.Name = split[0].RemoveSquareBrackets();
         split.RemoveAt(0);
@@ -654,8 +660,11 @@ namespace VerQL.Core.Loaders
       t = Regex.Replace(t, "PRIMARY KEY", "", RegexOptions.IgnoreCase);
 
       // Is Unique
-      col.IsUnique = t.IndexOf("UNIQUE", StringComparison.OrdinalIgnoreCase) > -1;
-      t = Regex.Replace(t, "UNIQUE", "", RegexOptions.IgnoreCase);
+      col.IsUnique = t.IndexOf("UNIQUE", StringComparison.OrdinalIgnoreCase) > -1 && t.IndexOf("UNIQUE", StringComparison.OrdinalIgnoreCase) != t.IndexOf("UNIQUEIDENTIFIER", StringComparison.OrdinalIgnoreCase);
+      if (col.IsUnique)
+      {
+        t = Regex.Replace(t, "UNIQUE", "", RegexOptions.IgnoreCase);
+      }
 
       //Name
       var split = t.Split(null).ToList();

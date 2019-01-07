@@ -11,7 +11,12 @@ namespace VerQL.Core.Scripters
     {
       var sb = new StringBuilder();
       sb.AppendLine($"ALTER TABLE [{foreignKeyConstraint.TableSchema}].[{foreignKeyConstraint.TableName}]");
-      sb.Append($"ADD CONSTRAINT [{foreignKeyConstraint.Name}] FOREIGN KEY (");
+      sb.Append("ADD ");
+      if (!string.IsNullOrEmpty(foreignKeyConstraint.Name))
+      {
+        sb.Append($" CONSTRAINT [{foreignKeyConstraint.Name}] ");
+      }
+      sb.Append("FOREIGN KEY (");
       sb.Append(string.Join(",", foreignKeyConstraint.Columns.Select(c => $"[{c}]")));
       sb.AppendLine(")");
 

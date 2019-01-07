@@ -37,7 +37,8 @@ select s.name as [TableSchema],
 	c.column_id as [Sequence],
 	case when c.user_type_id <> c.system_type_id then utys.name + '.' + uty.name else uty.name end as [Type],
 	case
-	    when c.max_length = -1 then c.max_length
+		when uty.name in ('xml') then 0
+	  when c.max_length = -1 then c.max_length
 		when uty.name in ('time') then c.scale
 		when uty.name in ('float') then c.precision
 		when uty.name in ('ntext', 'nchar', 'nvarchar') then c.max_length / 2
@@ -71,7 +72,8 @@ select s.name as [TableSchema],
 	fk.delete_referential_action_desc as [OnDelete],
 	fk.update_referential_action_desc as [OnUpdate],
 	s.name as [ReferenceSchema],
-	t.name as [ReferenceTable]
+	t.name as [ReferenceTable],
+	fk.is_system_named as [SystemNamed]
 from sys.foreign_keys fk
 	join sys.tables t on t.object_id = fk.parent_object_id
 	join sys.schemas s on s.schema_id = t.schema_id
