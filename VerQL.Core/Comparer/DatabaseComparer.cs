@@ -141,7 +141,7 @@ namespace VerQL.Core.Comparer
       {
         var l = left.First(x => x.Name.Equals(ln));
         var r = right.First(x => x.Name.Equals(l.Name));
-        if (l.Authorization.Equals(r.Authorization)) resp.Same.Add(l);
+        if ((l.Authorization ?? "").Equals(r.Authorization ?? "")) resp.Same.Add(l);
         else resp.Different.Add(new Tuple<Schema, Schema>(l, r));
       }
       resp.Missing = rightNames.Except(leftNames).Select(p => right.First(r => r.Name.Equals(p))).ToList();

@@ -11,7 +11,16 @@ namespace VerQL.Core.Scripters
     {
       var sb = new StringBuilder();
 
-      sb.Append($"[{column.Name}] {column.Type} ");
+      sb.Append($"[{column.Name}] ");
+
+      if (column.IsComputed)
+      {
+        sb.Append($"AS {column.ComputedText} ");
+      }
+      else
+      {
+        sb.Append($"{column.Type} ");
+      }
 
       if (column.MaxLength != 0)
       {
@@ -45,12 +54,15 @@ namespace VerQL.Core.Scripters
         sb.Append("UNIQUE ");
       }
 
-      if (!column.IsNullable)
+      if (!column.IsComputed)
       {
-        sb.Append("NOT ");
-      }
+        if (!column.IsNullable)
+        {
+          sb.Append("NOT ");
+        }
 
-      sb.Append("NULL ");
+        sb.Append("NULL ");
+      }
 
       if (column.HasDefault && !StructureOnly)
       {

@@ -14,7 +14,6 @@ namespace VerQL.CoreTest
     [InlineData("CREATE TABLE myTable ()")]
     [InlineData("CREATE table myTable ()")]
     [InlineData("create TABLE myTable ()")]
-    [InlineData("create TABLE myTable ();")]
     public void ProcessTable_NameAndSchemas(string sql)
     {
       var t = new MockDirectoryLoader().TestProcessTable(sql);
@@ -111,6 +110,25 @@ namespace VerQL.CoreTest
       Assert.Equal<bool>(true, t.Columns[0].HasDefault);
       Assert.Equal<string>("('')", t.Columns[0].DefaultText);
       Assert.Equal<string>("df_myTable_mycol", t.Columns[0].DefaultName);
+      Assert.Equal<bool>(false, t.Columns[0].IsNullable);
+      Assert.Empty(t.UniqueConstraints);
+      Assert.Empty(t.ForeignKeyConstraints);
+      Assert.Null(t.PrimaryKeyConstraint);
+    }
+
+    [Theory]
+    [InlineData("create table [dbo].[myLogs] ([LogID] [int] IDENTITY(1,1) NOT NULL)")]
+    public void ProcessTable_ColumnsIdentity(string sql)
+    {
+      var t = new MockDirectoryLoader().TestProcessTable(sql);
+      Assert.NotNull(t);
+      Assert.Equal<string>("myLogs", t.Table.Name);
+      Assert.Equal<string>("dbo", t.Table.Schema);
+      Assert.NotEmpty(t.Columns);
+      Assert.Equal<int>(1, t.Columns.Count);
+      Assert.Equal<string>("LogID", t.Columns[0].Name);
+      Assert.Equal<string>("int", t.Columns[0].Type);
+      Assert.Equal<bool>(true, t.Columns[0].IsIdentity);
       Assert.Equal<bool>(false, t.Columns[0].IsNullable);
       Assert.Empty(t.UniqueConstraints);
       Assert.Empty(t.ForeignKeyConstraints);

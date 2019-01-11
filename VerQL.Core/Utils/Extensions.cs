@@ -45,6 +45,56 @@ namespace VerQL.Core.Utils
       return r;
     }
 
+    public static string SqlTrimWhiteSpace(this string Sql)
+    {
+      var trimmed = "";
+      var singleQuotes = false;
+      var doubleQuotes = false;
+      var lastCharSpace = false;
+      var openSquares = 0;
+      foreach (var c in Sql)
+      {
+        if (c == '\'')
+        {
+          singleQuotes = !singleQuotes;
+        }
+        else if (c == '"')
+        {
+          doubleQuotes = !doubleQuotes;
+        }
+        else if (c == '[')
+        {
+          if (!singleQuotes && !doubleQuotes)
+          {
+            openSquares++;
+          }
+        }
+        else if (c == ']')
+        {
+          if (!singleQuotes && !doubleQuotes)
+          {
+            openSquares--;
+          }
+        }
+
+        if (singleQuotes ||
+            doubleQuotes ||
+            openSquares > 0 ||
+          ((c != ' ' && c != '\t') || !lastCharSpace))
+        {
+          trimmed += c;
+        }
+
+        lastCharSpace = c == ' ' || c == '\t';
+      }
+      return trimmed;
+    }
+
+    public static string SqlTrimLines(this string Sql)
+    {
+      return string.Join("\r\n", Sql.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()));
+    }
+
     public static string GetKey(this Base b)
     {
       return $"[{b.Schema}].[{b.Name}]";
@@ -75,7 +125,7 @@ namespace VerQL.Core.Utils
       return r;
     }
 
-    public static List<string> TrueSplit(this string text, bool keepSeparator = true, char separator = ',')
+    public static List<string> TrueSplit(this string text, char[] separators, bool keepSeparator = true)
     {
       var lines = new List<string>();
       var sf = "";
@@ -89,16 +139,21 @@ namespace VerQL.Core.Utils
         else if (c == ']') squares--;
         else if (c == '(') brackets++;
         else if (c == ')') brackets--;
-        else if (c == separator && !quotes && squares == 0 && brackets == 0)
+        else if (separators.Contains(c) && !quotes && squares == 0 && brackets == 0)
         {
-          lines.Add(sf);
-          sf = "";
+          if (!string.IsNullOrEmpty(sf))
+          {
+            lines.Add(sf);
+            sf = "";
+          }
         }
-        if (c != separator || keepSeparator) sf += c;
+        if (!separators.Contains(c) || keepSeparator || quotes || squares > 0 || brackets > 0) sf += c;
       }
       sf = sf.Trim();
-      if (sf.StartsWith(Convert.ToString(separator))) sf = sf.Substring(1);
-      sf = sf.Trim();
+      if (sf.Length > 0 && separators.Contains(sf[0])) sf = sf.Substring(1);
+      {
+        sf = sf.Trim();
+      }
       if (!string.IsNullOrEmpty(sf))
       {
         lines.Add(sf);

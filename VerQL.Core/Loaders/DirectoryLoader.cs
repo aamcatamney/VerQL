@@ -10,8 +10,8 @@ namespace VerQL.Core.Loaders
 {
   public class DirectoryLoader : ILoader
   {
-    private const string ReplaceString = @"\s\s+(?=([^']*'[^']*')*[^']*$)";
     private const string DefaultConstraint = @"(constraint).+(\[?\w\]?).+(?=default)";
+    private const string StatmentRegex = "^(?!--)Create\\s|Execute\\s(?=([^']*'[^']*')*[^']*$)";
     private string _path;
     public DirectoryLoader(string Path)
     {
@@ -69,20 +69,24 @@ namespace VerQL.Core.Loaders
 
     protected List<string> ParseFile(string path)
     {
-      var contents = File.ReadAllText(path);
-      var starts = Regex.Matches(contents, "^(?!--)(EXECUTE |CREATE )(?=([^']*'[^']*')*[^']*$)", RegexOptions.IgnoreCase | RegexOptions.Multiline);
       var statments = new List<string>();
-      for (int i = 0; i < starts.Count; i++)
+      var rawContents = File.ReadAllText(path);
+      if (Regex.IsMatch(rawContents, StatmentRegex, RegexOptions.IgnoreCase | RegexOptions.Multiline))
       {
-
-        var s = starts[i];
-        var index = contents.Length;
-        if ((i + 1) < starts.Count)
+        var contents = rawContents.SqlTrimWhiteSpace().SqlTrimLines();
+        var starts = Regex.Matches(contents, StatmentRegex, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        for (int i = 0; i < starts.Count; i++)
         {
-          index = starts[i + 1].Index;
+
+          var s = starts[i];
+          var index = contents.Length;
+          if ((i + 1) < starts.Count)
+          {
+            index = starts[i + 1].Index;
+          }
+          var actual = contents.Substring(s.Index, index - s.Index);
+          statments.Add(actual);
         }
-        var actual = contents.Substring(s.Index, index - s.Index);
-        statments.Add(actual);
       }
       return statments;
     }
@@ -90,13 +94,11 @@ namespace VerQL.Core.Loaders
     protected Database ProcessStatments(List<string> sqlStatments)
     {
       var db = new Database();
-      var regex = new Regex(ReplaceString);
       foreach (var s in sqlStatments)
       {
-        var spaceRemoved = regex.Replace(s, " ");
-        if (spaceRemoved.Trim().StartsWith("create table", StringComparison.OrdinalIgnoreCase))
+        if (s.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
         {
-          var t = ProcessTable(s);
+          var t = ProcessTable(s.TrimGoAndSemi().Trim());
           if (t != null)
           {
             db.Tables.Add(t.Table);
@@ -106,7 +108,7 @@ namespace VerQL.Core.Loaders
             db.UniqueConstraints.AddRange(t.UniqueConstraints);
           }
         }
-        else if (spaceRemoved.Trim().StartsWith("create procedure", StringComparison.OrdinalIgnoreCase))
+        else if (s.StartsWith("create procedure", StringComparison.OrdinalIgnoreCase))
         {
           var p = ProcessDefinitionBased<Procedure>(new Procedure(), "procedure", s);
           if (p != null)
@@ -114,7 +116,7 @@ namespace VerQL.Core.Loaders
             db.Procedures.Add(p);
           }
         }
-        else if (spaceRemoved.Trim().StartsWith("create function", StringComparison.OrdinalIgnoreCase))
+        else if (s.StartsWith("create function", StringComparison.OrdinalIgnoreCase))
         {
           var f = ProcessDefinitionBased<Function>(new Function(), "function", s);
           if (f != null)
@@ -122,7 +124,7 @@ namespace VerQL.Core.Loaders
             db.Functions.Add(f);
           }
         }
-        else if (spaceRemoved.Trim().StartsWith("create view", StringComparison.OrdinalIgnoreCase))
+        else if (s.StartsWith("create view", StringComparison.OrdinalIgnoreCase))
         {
           var v = ProcessDefinitionBased<View>(new View(), "view", s);
           if (v != null)
@@ -130,7 +132,7 @@ namespace VerQL.Core.Loaders
             db.Views.Add(v);
           }
         }
-        else if (spaceRemoved.Trim().StartsWith("create trigger", StringComparison.OrdinalIgnoreCase))
+        else if (s.StartsWith("create trigger", StringComparison.OrdinalIgnoreCase))
         {
           var t = ProcessDefinitionBased<Trigger>(new Trigger(), "trigger", s);
           if (t != null)
@@ -138,7 +140,7 @@ namespace VerQL.Core.Loaders
             db.Triggers.Add(t);
           }
         }
-        else if (spaceRemoved.Trim().StartsWith("create type", StringComparison.OrdinalIgnoreCase))
+        else if (s.StartsWith("create type", StringComparison.OrdinalIgnoreCase))
         {
           var t = ProcessUserType(s);
           if (t != null)
@@ -146,7 +148,7 @@ namespace VerQL.Core.Loaders
             db.UserTypes.Add(t);
           }
         }
-        else if (spaceRemoved.Trim().StartsWith("create schema", StringComparison.OrdinalIgnoreCase))
+        else if (s.StartsWith("create schema", StringComparison.OrdinalIgnoreCase))
         {
           var t = ProcessSchema(s);
           if (t != null)
@@ -154,7 +156,7 @@ namespace VerQL.Core.Loaders
             db.Schemas.Add(t);
           }
         }
-        else if (spaceRemoved.Trim().StartsWith("create nonclustered index", StringComparison.OrdinalIgnoreCase) || spaceRemoved.Trim().StartsWith("create index", StringComparison.OrdinalIgnoreCase))
+        else if (s.StartsWith("create nonclustered index", StringComparison.OrdinalIgnoreCase) || s.StartsWith("create index", StringComparison.OrdinalIgnoreCase))
         {
           var t = ProcessIndex(s);
           if (t != null)
@@ -162,7 +164,7 @@ namespace VerQL.Core.Loaders
             db.Indexs.Add(t);
           }
         }
-        else if (spaceRemoved.Trim().StartsWith("execute sp_addextendedproperty", StringComparison.OrdinalIgnoreCase))
+        else if (s.StartsWith("execute sp_addextendedproperty", StringComparison.OrdinalIgnoreCase))
         {
           var t = ProcessExtendedProperty(s);
           if (t != null)
@@ -244,11 +246,6 @@ namespace VerQL.Core.Loaders
     protected ProcessTableResponse ProcessTable(string sql)
     {
       var resp = new ProcessTableResponse();
-      var text = sql.Trim();
-      if (text.EndsWith("GO", StringComparison.OrdinalIgnoreCase))
-      {
-        text = text.Substring(0, text.Length - 2).Trim();
-      }
       var tbl = new Table();
       // Name & Schema
       tbl.Name = sql.Substring(sql.IndexOf("table", StringComparison.OrdinalIgnoreCase) + 5);
@@ -261,13 +258,12 @@ namespace VerQL.Core.Loaders
       tbl.Name = tbl.Name.RemoveSquareBrackets();
       tbl.Schema = tbl.Schema.RemoveSquareBrackets();
 
-      text = text.Substring(text.IndexOf("(") + 1);
+      var text = sql.Substring(sql.IndexOf("(") + 1);
       if (text.EndsWith(")")) text = text.Substring(0, text.Length - 1);
-      else if (text.EndsWith(");")) text = text.Substring(0, text.Length - 2);
 
       // cols
       var lines = new List<string>();
-      var split = text.TrueSplit();
+      var split = text.TrueSplit(new[] { ',' }, false);
       foreach (var s in split)
       {
         var t = s.Trim();
@@ -403,7 +399,7 @@ namespace VerQL.Core.Loaders
         t = string.Join(" ", split).Trim();
       }
 
-      foreach (var c in t.Split(new[] { "REFERENCES" }, StringSplitOptions.None).First().RemoveBrackets().TrueSplit())
+      foreach (var c in t.Split(new[] { "REFERENCES" }, StringSplitOptions.None).First().RemoveBrackets().TrueSplit(new[] { ',' }))
       {
         fk.Columns.Add(c.RemoveSquareBrackets().Trim());
       }
@@ -423,7 +419,7 @@ namespace VerQL.Core.Loaders
       t = t.Substring(t.IndexOf("("));
       if (t.Contains(")")) t = t.Substring(0, t.LastIndexOf(")"));
 
-      foreach (var c in t.RemoveBrackets().TrueSplit())
+      foreach (var c in t.RemoveBrackets().TrueSplit(new[] { ',' }))
       {
         fk.ReferenceColumns.Add(c.RemoveSquareBrackets().Trim());
       }
@@ -456,14 +452,18 @@ namespace VerQL.Core.Loaders
       if (t.IndexOf("WITH", StringComparison.OrdinalIgnoreCase) > -1)
       {
         var with = t.Substring(t.IndexOf("WITH", StringComparison.OrdinalIgnoreCase) + 4);
-        var ws = with.Trim().RemoveBrackets().TrueSplit(true, '=').Select(s => s.Trim()).ToList();
-        ws.RemoveAt(0);
-        pk.FillFactor = int.Parse(ws[0]);
+        var ws = with.Trim().RemoveBrackets().TrueSplit(new[] { '=' }, true).Select(s => s.Trim()).ToList();
+        var index = ws.FindIndex(i => i.IndexOf("FILLFACTOR", StringComparison.OrdinalIgnoreCase) > -1);
+        if (index > -1)
+        {
+          ws.RemoveAt(index);
+          pk.FillFactor = int.Parse(ws[index]);
+        }
 
         t = t.Substring(0, t.IndexOf("WITH", StringComparison.OrdinalIgnoreCase));
       }
 
-      foreach (var c in t.RemoveBrackets().TrueSplit())
+      foreach (var c in t.RemoveBrackets().TrueSplit(new[] { ',' }))
       {
         var col = new PrimaryKeyColumn();
         var colText = c.RemoveBrackets().Trim();
@@ -507,7 +507,7 @@ namespace VerQL.Core.Loaders
       uc.Clustered = t.IndexOf("CLUSTERED", StringComparison.OrdinalIgnoreCase) > -1;
       t = Regex.Replace(t, "CLUSTERED", "", RegexOptions.IgnoreCase);
 
-      foreach (var c in t.RemoveBrackets().TrueSplit())
+      foreach (var c in t.RemoveBrackets().TrueSplit(new[] { ',' }))
       {
         var col = new UniqueColumn();
         var colText = c.RemoveBrackets().Trim();
@@ -580,7 +580,7 @@ namespace VerQL.Core.Loaders
       cols = cols.Trim().RemoveBrackets().Trim();
       icols = icols.Trim().RemoveBrackets().Trim();
 
-      foreach (var c in cols.TrueSplit(false))
+      foreach (var c in cols.TrueSplit(new[] { ',' }, false))
       {
         var col = new IndexColumn();
         var colText = c.Trim().RemoveBrackets().Trim();
@@ -591,7 +591,7 @@ namespace VerQL.Core.Loaders
         i.Columns.Add(col);
       }
 
-      foreach (var c in icols.TrueSplit(false))
+      foreach (var c in icols.TrueSplit(new[] { ',' }, false))
       {
         i.IncludedColumns.Add(c.Trim().RemoveBrackets().Trim().RemoveSquareBrackets().Trim());
       }
@@ -601,7 +601,7 @@ namespace VerQL.Core.Loaders
 
     protected ExtendedProperty ProcessExtendedProperty(string text)
     {
-      var split = text.TrimGoAndSemi().TrueSplit(false).Select(t => t.Trim()).Select(s => s.Split(new[] { '@' }).LastOrDefault()).ToList();
+      var split = text.TrimGoAndSemi().TrueSplit(new[] { ',' }, false).Select(t => t.Trim()).Select(s => s.Split(new[] { '@' }).LastOrDefault()).ToList();
       var ep = new ExtendedProperty();
       foreach (var s in split)
       {
@@ -646,7 +646,7 @@ namespace VerQL.Core.Loaders
 
     protected Column ProcessColumn(string TableSchema, string TableName, string text)
     {
-      var t = new Regex(@"\s\s+").Replace(text, " ");
+      var t = text;
       // Is null
       var col = new Column();
       col.TableSchema = TableSchema;
@@ -703,7 +703,7 @@ namespace VerQL.Core.Loaders
         {
           col.MaxLength = -1;
         }
-        else if (!string.IsNullOrEmpty(length))
+        else if (!string.IsNullOrEmpty(length) && length.IndexOf("IDENTITY", StringComparison.OrdinalIgnoreCase) == -1)
         {
           col.MaxLength = int.Parse(length);
         }
@@ -716,13 +716,16 @@ namespace VerQL.Core.Loaders
       {
         var ii = t.IndexOf("IDENTITY", StringComparison.OrdinalIgnoreCase) + 8;
         var ivalues = t.Substring(ii).Trim();
+        var removeTo = 8;
         if (ivalues.StartsWith("("))
         {
           var values = ivalues.Substring(1).Split(new[] { ")" }, StringSplitOptions.None)[0].Split(new[] { "," }, StringSplitOptions.None);
           col.SeedValue = int.Parse(values[0]);
           col.IncrementValue = int.Parse(values[1]);
+          removeTo += ivalues.IndexOf(')') + 1;
         }
         col.IsIdentity = true;
+        t = t.Remove(ii - 8, removeTo);
       }
 
       // Default
